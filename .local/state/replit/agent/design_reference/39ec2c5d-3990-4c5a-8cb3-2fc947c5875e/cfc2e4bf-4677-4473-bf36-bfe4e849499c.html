@@ -1,0 +1,792 @@
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de DUERP - Document Unique d'Évaluation des Risques Professionnels</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand': {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 font-inter">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-brand-600 text-white p-2 rounded-lg">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900">Générateur de DUERP</h1>
+                            <p class="text-sm text-slate-600">Document Unique d'Évaluation des Risques Professionnels</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-brand-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Exporter PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Company Information Section -->
+            <!-- @COMPONENT: CompanyForm -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-slate-900">Informations de l'entreprise</h2>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Étape 1</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Nom de la société *</label>
+                        <input 
+                            type="text" 
+                            data-bind="company.name"
+                            data-mock="true"
+                            placeholder="Ex: ACME Industries"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                            value="ACME Industries"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Secteur d'activité *</label>
+                        <input 
+                            type="text" 
+                            data-bind="company.activity"
+                            data-mock="true"
+                            placeholder="Ex: Industrie manufacturière"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                            value="Industrie manufacturière"
+                        >
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: CompanyForm -->
+
+            <!-- Locations Section -->
+            <!-- @STATE: locations:array = [] -->
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-slate-900">Lieux et unités de travail</h2>
+                    <button 
+                        data-event="click:addLocation"
+                        class="bg-brand-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition-colors flex items-center space-x-2"
+                    >
+                        <i class="fas fa-plus"></i>
+                        <span>Ajouter un lieu</span>
+                    </button>
+                </div>
+
+                <!-- Location Cards -->
+                <!-- @MAP: locations.map(location => ( -->
+                <!-- @COMPONENT: LocationSection -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <!-- Location Header -->
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-brand-100 text-brand-600 p-2 rounded-lg">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <div>
+                                    <input 
+                                        type="text" 
+                                        data-bind="location.name"
+                                        data-mock="true"
+                                        placeholder="Nom du lieu"
+                                        class="text-lg font-semibold text-slate-900 bg-transparent border-none outline-none focus:bg-white focus:px-2 focus:py-1 focus:rounded focus:border focus:border-brand-500"
+                                        value="Atelier principal"
+                                    >
+                                    <p class="text-sm text-slate-600">2 unités de travail</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button 
+                                    data-event="click:addWorkUnit"
+                                    class="text-brand-600 hover:text-brand-700 p-2 rounded-lg hover:bg-brand-50 transition-colors"
+                                    title="Ajouter une unité de travail"
+                                >
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button 
+                                    data-event="click:removeLocation"
+                                    class="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Supprimer ce lieu"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work Units -->
+                    <div class="p-6 space-y-8">
+                        <!-- Work Unit 1 -->
+                        <!-- @MAP: location.workUnits.map(workUnit => ( -->
+                        <div class="border-l-4 border-brand-500 pl-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-amber-100 text-amber-600 p-2 rounded-lg">
+                                        <i class="fas fa-tools"></i>
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="text" 
+                                            data-bind="workUnit.name"
+                                            data-mock="true"
+                                            placeholder="Nom de l'unité de travail"
+                                            class="text-lg font-medium text-slate-900 bg-transparent border-none outline-none focus:bg-white focus:px-2 focus:py-1 focus:rounded focus:border focus:border-brand-500"
+                                            value="Soudure"
+                                        >
+                                        <p class="text-sm text-slate-600">7 risques identifiés</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button 
+                                        data-event="click:generateRisks"
+                                        class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                                    >
+                                        <i class="fas fa-magic mr-1"></i>
+                                        Générer les risques
+                                    </button>
+                                    <button 
+                                        data-event="click:removeWorkUnit"
+                                        class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Risk Table -->
+                            <!-- @COMPONENT: RiskTable -->
+                            <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Évaluation des risques professionnels</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-200">
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Danger potentiel</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Gravité</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Fréquence</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Maîtrise</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque final</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Mesures existantes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">TMS</td>
+                                                <td class="py-2 px-3 text-slate-700">Posture debout prolongée</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyen</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Chaise réglable, pauses régulières</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Incendie</td>
+                                                <td class="py-2 px-3 text-slate-700">Équipement inflammable</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Occasionnel</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Important</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Extincteurs, détecteurs de fumée</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Brûlures</td>
+                                                <td class="py-2 px-3 text-slate-700">Contact avec surfaces chaudes</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Hebdomadaire</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyen</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Gants de protection, formation</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Intoxication</td>
+                                                <td class="py-2 px-3 text-slate-700">Inhalation de fumées</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Important</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Masque respiratoire, ventilation</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Coupures</td>
+                                                <td class="py-2 px-3 text-slate-700">Manipulation d'outils tranchants</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Hebdomadaire</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Gants anti-coupures, formation</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- @END_COMPONENT: RiskTable -->
+
+                            <!-- Prevention Measures -->
+                            <!-- @COMPONENT: PreventionSection -->
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-green-900 flex items-center">
+                                        <i class="fas fa-shield-alt mr-2"></i>
+                                        Mesures de prévention additionnelles
+                                    </h4>
+                                    <button 
+                                        data-event="click:addPreventionMeasure"
+                                        class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-100 transition-colors"
+                                    >
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <!-- @MAP: workUnit.preventionMeasures.map(measure => ( -->
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Port obligatoire des équipements de protection individuelle"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Système de ventilation performant avec aspiration des fumées"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Formation annuelle aux bonnes pratiques de sécurité"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                            </div>
+                            <!-- @END_COMPONENT: PreventionSection -->
+                        </div>
+                        <!-- @END_MAP )) -->
+
+                        <!-- Work Unit 2 -->
+                        <div class="border-l-4 border-brand-500 pl-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-purple-100 text-purple-600 p-2 rounded-lg">
+                                        <i class="fas fa-cog"></i>
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="text" 
+                                            data-bind="workUnit.name"
+                                            data-mock="true"
+                                            placeholder="Nom de l'unité de travail"
+                                            class="text-lg font-medium text-slate-900 bg-transparent border-none outline-none focus:bg-white focus:px-2 focus:py-1 focus:rounded focus:border focus:border-brand-500"
+                                            value="Usinage"
+                                        >
+                                        <p class="text-sm text-slate-600">6 risques identifiés</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button 
+                                        data-event="click:generateRisks"
+                                        class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                                    >
+                                        <i class="fas fa-magic mr-1"></i>
+                                        Générer les risques
+                                    </button>
+                                    <button 
+                                        data-event="click:removeWorkUnit"
+                                        class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Risk Table -->
+                            <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Évaluation des risques professionnels</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-200">
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Danger potentiel</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Gravité</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Fréquence</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Maîtrise</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque final</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Mesures existantes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Bruit</td>
+                                                <td class="py-2 px-3 text-slate-700">Exposition prolongée aux machines</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyen</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Protections auditives, cabines isolées</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Projection de copeaux</td>
+                                                <td class="py-2 px-3 text-slate-700">Particules métalliques volantes</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Lunettes de protection, écrans</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Coincement</td>
+                                                <td class="py-2 px-3 text-slate-700">Pièces mobiles des machines</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Rare</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Protections machines, arrêts d'urgence</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Prevention Measures -->
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-green-900 flex items-center">
+                                        <i class="fas fa-shield-alt mr-2"></i>
+                                        Mesures de prévention additionnelles
+                                    </h4>
+                                    <button 
+                                        data-event="click:addPreventionMeasure"
+                                        class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-100 transition-colors"
+                                    >
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Maintenance préventive hebdomadaire des machines"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Contrôle d'accès avec badge pour les zones sensibles"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: LocationSection -->
+                <!-- @END_MAP )) -->
+
+                <!-- Second Location Example -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <!-- Location Header -->
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-brand-100 text-brand-600 p-2 rounded-lg">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div>
+                                    <input 
+                                        type="text" 
+                                        data-bind="location.name"
+                                        data-mock="true"
+                                        placeholder="Nom du lieu"
+                                        class="text-lg font-semibold text-slate-900 bg-transparent border-none outline-none focus:bg-white focus:px-2 focus:py-1 focus:rounded focus:border focus:border-brand-500"
+                                        value="Bureaux administratifs"
+                                    >
+                                    <p class="text-sm text-slate-600">1 unité de travail</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button 
+                                    data-event="click:addWorkUnit"
+                                    class="text-brand-600 hover:text-brand-700 p-2 rounded-lg hover:bg-brand-50 transition-colors"
+                                    title="Ajouter une unité de travail"
+                                >
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button 
+                                    data-event="click:removeLocation"
+                                    class="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Supprimer ce lieu"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work Units -->
+                    <div class="p-6 space-y-8">
+                        <div class="border-l-4 border-brand-500 pl-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                                        <i class="fas fa-desktop"></i>
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="text" 
+                                            data-bind="workUnit.name"
+                                            data-mock="true"
+                                            placeholder="Nom de l'unité de travail"
+                                            class="text-lg font-medium text-slate-900 bg-transparent border-none outline-none focus:bg-white focus:px-2 focus:py-1 focus:rounded focus:border focus:border-brand-500"
+                                            value="Travail sur écran"
+                                        >
+                                        <p class="text-sm text-slate-600">4 risques identifiés</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button 
+                                        data-event="click:generateRisks"
+                                        class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                                    >
+                                        <i class="fas fa-magic mr-1"></i>
+                                        Générer les risques
+                                    </button>
+                                    <button 
+                                        data-event="click:removeWorkUnit"
+                                        class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                    >
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Risk Table -->
+                            <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Évaluation des risques professionnels</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="border-b border-slate-200">
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Danger potentiel</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Gravité</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Fréquence</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Maîtrise</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Risque final</th>
+                                                <th class="text-left py-2 px-3 font-medium text-slate-700">Mesures existantes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200">
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">Fatigue visuelle</td>
+                                                <td class="py-2 px-3 text-slate-700">Exposition prolongée aux écrans</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Pauses régulières, éclairage adapté</td>
+                                            </tr>
+                                            <tr data-mock="true" class="hover:bg-slate-50">
+                                                <td class="py-2 px-3 font-medium text-slate-900">TMS</td>
+                                                <td class="py-2 px-3 text-slate-700">Posture assise prolongée</td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Moyenne</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Quotidien</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Élevée</span>
+                                                </td>
+                                                <td class="py-2 px-3">
+                                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Faible</span>
+                                                </td>
+                                                <td class="py-2 px-3 text-slate-700">Sièges ergonomiques, bureaux réglables</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Prevention Measures -->
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-green-900 flex items-center">
+                                        <i class="fas fa-shield-alt mr-2"></i>
+                                        Mesures de prévention additionnelles
+                                    </h4>
+                                    <button 
+                                        data-event="click:addPreventionMeasure"
+                                        class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-100 transition-colors"
+                                    >
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div data-mock="true" class="flex items-center space-x-2 bg-white rounded-lg p-3">
+                                        <i class="fas fa-check-circle text-green-600"></i>
+                                        <input 
+                                            type="text" 
+                                            data-bind="measure.description"
+                                            data-mock="true"
+                                            placeholder="Décrivez la mesure de prévention..."
+                                            class="flex-1 bg-transparent border-none outline-none focus:bg-green-50 focus:px-2 focus:py-1 focus:rounded"
+                                            value="Sensibilisation aux gestes et postures"
+                                        >
+                                        <button 
+                                            data-event="click:removePreventionMeasure"
+                                            class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-center space-x-4 mt-12">
+                <button 
+                    data-event="click:generateAllRisks"
+                    class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
+                    <i class="fas fa-magic"></i>
+                    <span>Générer tous les risques</span>
+                </button>
+                <button 
+                    data-event="click:exportDocument"
+                    class="bg-brand-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-700 transition-colors flex items-center space-x-2"
+                >
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Exporter le DUERP</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+                </div>
+                <p class="text-center text-slate-700">Génération des risques en cours...</p>
+                <p class="text-center text-sm text-slate-500 mt-2">Veuillez patienter</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            'use strict';
+            
+            // Mock data for demonstration
+            const mockRisks = [
+                {
+                    type: 'TMS',
+                    danger: 'Posture debout prolongée',
+                    gravity: 'Moyenne',
+                    frequency: 'Quotidien',
+                    control: 'Faible',
+                    finalRisk: 'Moyen',
+                    measures: 'Chaise réglable, pauses régulières'
+                },
+                {
+                    type: 'Incendie',
+                    danger: 'Équipement inflammable',
+                    gravity: 'Élevée',
+                    frequency: 'Occasionnel',
+                    control: 'Moyenne',
+                    finalRisk: 'Important',
+                    measures: 'Extincteurs, détecteurs de fumée'
+                }
+            ];
+
+            // Basic interaction handlers for demonstration
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('[data-event^="click:generateRisks"]')) {
+                    showLoading();
+                    setTimeout(hideLoading, 2000);
+                }
+                
+                if (e.target.closest('[data-event^="click:exportDocument"]')) {
+                    // TODO: Implement PDF export functionality
+                    console.log('Export PDF functionality to be implemented');
+                }
+            });
+
+            function showLoading() {
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+            }
+
+            function hideLoading() {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+
+            // TODO: Implement full state management, form validation, and API integration
+        })();
+    </script>
+</body>
+</html>

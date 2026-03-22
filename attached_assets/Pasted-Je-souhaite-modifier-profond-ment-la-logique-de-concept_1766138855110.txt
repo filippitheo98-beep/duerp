@@ -1,0 +1,107 @@
+Je souhaite modifier profondément la logique de conception de mon outil afin qu’il reflète une approche terrain, hiérarchique et conforme aux bonnes pratiques du Document Unique.
+
+Nouvelle logique fonctionnelle attendue
+
+L’application doit fonctionner selon la hiérarchie suivante :
+
+Société
+
+Sites (priorisés)
+
+Zones de travail
+
+Unités de travail
+
+Activités
+
+Risques professionnels
+
+Chaque niveau est imbriqué dans le niveau supérieur.
+
+Création et priorisation
+
+L’utilisateur crée d’abord une société
+
+À l’intérieur de la société, il peut créer :
+
+Plusieurs sites, avec un ordre de priorité (site principal, secondaire, occasionnel, etc.)
+
+Pour chaque site, plusieurs zones
+
+Pour chaque zone, plusieurs unités de travail
+
+Pour chaque unité de travail, plusieurs activités
+
+Génération intelligente des risques (IA)
+
+À chaque niveau de création (site, zone, unité, activité), l’application doit :
+
+Interroger une IA spécialisée en prévention des risques
+
+Générer une liste de risques professionnels pertinents, adaptée :
+
+Au type d’élément créé
+
+Au secteur d’activité
+
+À l’environnement de travail
+
+Les risques proposés doivent être :
+
+Classés par famille de risques
+
+Rédigés de manière claire, réglementaire et exploitable DUERP
+
+Validation utilisateur obligatoire
+
+L’utilisateur ne subit jamais les risques générés
+
+Pour chaque élément, il doit pouvoir :
+
+Visualiser les risques proposés
+
+Sélectionner / désélectionner les risques à conserver
+
+Modifier ou compléter si besoin
+
+Seuls les risques validés par l’utilisateur sont :
+
+Intégrés au DUERP final
+
+Pris en compte dans les tableaux de synthèse
+
+Logique d’héritage intelligente
+
+Les risques d’un niveau supérieur peuvent :
+
+Être proposés automatiquement au niveau inférieur
+
+Être confirmés ou refusés par l’utilisateur
+
+Exemple :
+
+Un risque “circulation de véhicules” identifié au niveau Site
+
+Peut être proposé automatiquement aux Zones et Unités concernées
+
+Résultat attendu
+
+Génération automatique d’un DUERP structuré, clair et professionnel
+
+Un tableau final des risques :
+
+Par site
+
+Par zone
+
+Par unité de travail
+
+Par activité
+
+Compatible avec :
+
+Les attentes de l’Inspection du travail
+
+Les recommandations INRS
+
+Une utilisation réelle par les entreprises

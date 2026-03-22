@@ -1,0 +1,5 @@
+# Railway (Railpack) exécute "npm ci" par défaut.
+# Pour éviter les erreurs de lock file désynchronisé, on force "npm install".
+# Alternative : dans Railway > Variables, définir RAILPACK_INSTALL_CMD=npm install
+[phases.install]
+cmds = ["npm install"]

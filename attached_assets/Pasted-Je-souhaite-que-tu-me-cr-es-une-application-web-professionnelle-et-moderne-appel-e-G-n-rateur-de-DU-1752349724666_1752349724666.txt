@@ -1,0 +1,86 @@
+Je souhaite que tu me crées une application web professionnelle et moderne appelée “Générateur de DUERP” (Document Unique d'Évaluation des Risques Professionnels).
+
+📦 Technologies :
+Framework : Next.js (pages directory ou app router possible)
+
+Style : Tailwind CSS pour un design propre et responsive
+
+Backend API : peut être simulé localement
+
+Pas de base de données requise pour le moment (tout peut être en local)
+
+🎯 Objectif :
+Permettre à un utilisateur de saisir les informations d’une entreprise, ajouter dynamiquement des lieux et unités de travail, et générer des tableaux de risques professionnels automatiquement remplis par l’IA, avec aussi les moyens de prévention existants.
+
+🧾 Fonctionnalités principales :
+1. Formulaire initial :
+Champ Nom de la société
+
+Champ Activité
+
+Bouton Ajouter un lieu
+
+2. Gestion dynamique des lieux et unités de travail :
+Pour chaque lieu, je veux pouvoir :
+
+Nommer le lieu
+
+Ajouter une ou plusieurs unités de travail dans ce lieu
+
+Pour chaque unité de travail, afficher une table de risques professionnels générés automatiquement par IA (5 à 10 risques par unité)
+
+3. Ajout de moyens de prévention :
+Sous chaque lieu/unité de travail, je veux pouvoir :
+
+Ajouter des champs pour renseigner des moyens de prévention / protections existants (champ libre)
+
+Pouvoir en ajouter plusieurs par lieu ou unité
+
+📋 Exemple de rendu attendu :
+markdown
+Copier
+Modifier
+Lieu : Atelier
+  ↳ Unité : Soudure
+    - Risques générés automatiquement :
+      | Risque                        | Danger potentiel               | Gravité | Fréquence | Maîtrise | Risque final | Mesures existantes |
+      |-------------------------------|--------------------------------|---------|-----------|----------|---------------|---------------------|
+      | TMS                           | Posture debout prolongée       | Moyenne | Quotidien | Faible   | Moyen         | Chaise assise       |
+      | Incendie                      | Équipement inflammable         | Élevée  | Occasionnel| Moyenne | Important     | Extincteurs         |
+      (... suite ...)
+
+  ↳ Mesures de prévention additionnelles :
+      - Port des EPI
+      - Présence d’un système de ventilation
+🎨 Design attendu :
+Design propre, lisible, moderne
+
+Utilisation de Tailwind CSS pour espacer, rendre responsive et lisible
+
+Cartes (card), champs clairs, boutons avec bons contrastes
+
+Responsive mobile et desktop
+
+⚙️ Fonctionnalités dynamiques :
+Possibilité d’ajouter/supprimer dynamiquement des lieux, unités de travail et mesures de prévention
+
+Bouton “Générer” qui envoie les données à une API locale /api/generate pour remplir les risques automatiquement (utiliser faker, ou fonction de simulation si pas de vraie IA dispo)
+
+📂 Arborescence minimale :
+lua
+Copier
+Modifier
+src/
+  pages/
+    index.js
+    api/generate.js
+  components/
+    CompanyForm.js
+    LocationSection.js
+    RiskTable.js
+    PreventionSection.js
+  styles/
+    globals.css
+tailwind.config.js
+postcss.config.js
+package.json
