@@ -249,19 +249,53 @@ export async function generateFullDuerpWorkbookExcel(
   });
   for (let i = 0; i < 8; i++) suivi.addRow(["", "", "", "", ""]);
 
-  // 3) Méthode (hiérarchisation)
+  // 3) Présentation (proche du modèle CSAPA)
+  const presentation = workbook.addWorksheet("Présentation");
+  presentation.columns = [{ width: 6 }, { width: 42 }, { width: 90 }];
+  addSectionTitle(presentation, 1, "Présentation de la société");
+  presentation.getCell("B3").value = "Société :";
+  presentation.getCell("C3").value = meta.companyName || "Non renseignée";
+  presentation.getCell("B4").value = "Activité :";
+  presentation.getCell("C4").value = meta.companyActivity || "Non renseignée";
+  presentation.getCell("B6").value = "Présentation :";
+  presentation.getCell("C6").value =
+    meta.companyDescription ||
+    `${meta.companyName || "L'entreprise"} exerce dans le secteur ${meta.companyActivity || "non précisé"}.`;
+  presentation.getCell("C6").alignment = { wrapText: true, vertical: "top" };
+  presentation.getRow(6).height = 130;
+  ["B3", "B4", "B6"].forEach((c) => {
+    presentation.getCell(c).font = { bold: true };
+  });
+
+  // 4) Cadre légal (résumé opérationnel)
+  const legal = workbook.addWorksheet("Code Du travail");
+  legal.columns = [{ width: 4 }, { width: 140 }];
+  addSectionTitle(legal, 1, "Mentions légales DUERP");
+  const legalText = [
+    "Le Document Unique d'Évaluation des Risques Professionnels (DUERP) est une obligation légale pour toute entreprise.",
+    "Article L4121-1 : l'employeur prend les mesures nécessaires pour assurer la sécurité et protéger la santé physique et mentale des travailleurs.",
+    "Article L4121-2 : ces mesures comprennent des actions de prévention, d'information, de formation et une organisation adaptée.",
+    "Article R4121-1 : l'employeur transcrit et met à jour dans un document unique les résultats de l'évaluation des risques.",
+    "Article R4121-2 : la mise à jour est réalisée au moins annuellement, et lors de tout changement important des conditions de travail.",
+    "Ce document constitue une base de pilotage de la prévention et du plan d'action."
+  ].join("\n\n");
+  legal.getCell("B3").value = legalText;
+  legal.getCell("B3").alignment = { wrapText: true, vertical: "top" };
+  legal.getRow(3).height = 240;
+
+  // 5) Méthode (hiérarchisation)
   const method = workbook.addWorksheet("Hiérarchisation");
-  method.columns = [{ width: 24 }, { width: 16 }, { width: 36 }, { width: 16 }, { width: 24 }, { width: 16 }];
+  method.columns = [{ width: 22 }, { width: 10 }, { width: 28 }, { width: 10 }, { width: 22 }, { width: 10 }, { width: 45 }];
   addSectionTitle(method, 1, "Critères d'évaluation des risques");
-  method.addRow(["Gravité", "Indice", "Fréquence d'exposition", "Indice", "Maîtrise", "Indice"]);
+  method.addRow(["Gravité", "Indice", "Fréquence d'exposition", "Indice", "Maîtrise", "Indice", "Repères"]);
   [
-    ["Faible", 1, "Annuelle", 1, "Très élevée", 0.05],
-    ["Moyenne", 4, "Mensuelle", 4, "Élevée", 0.2],
-    ["Grave", 20, "Hebdomadaire", 10, "Moyenne", 0.5],
-    ["Très grave", 100, "Journalière", 50, "Absente", 1],
+    ["Faible", 1, "Annuelle", 1, "Très élevée", 0.05, "Incident mineur / prévention très maîtrisée"],
+    ["Moyenne", 4, "Mensuelle", 4, "Élevée", 0.2, "Accident avec arrêt court"],
+    ["Grave", 20, "Hebdomadaire", 10, "Moyenne", 0.5, "Accident avec séquelles possibles"],
+    ["Très grave", 100, "Journalière", 50, "Absente", 1, "Accident grave / invalidité / décès"],
   ].forEach((r) => method.addRow(r));
   method.addRow([]);
-  addSectionTitle(method, 8, "Calcul de priorité");
+  addSectionTitle(method, 8, "Calcul de priorité (Score = Gravité × Fréquence × Maîtrise)");
   method.addRow(["Cotation du risque", "Classement", "Interprétation"]);
   [
     ["< 10", "Priorité 4", "Situation limitée ou maîtrisée."],
@@ -274,6 +308,7 @@ export async function generateFullDuerpWorkbookExcel(
       row.font = { bold: true };
       row.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E2E2" } };
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
       });
     }
   });
@@ -320,9 +355,26 @@ export async function generateFullDuerpWorkbookExcel(
     sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
   };
 
-  // 4) DUERP + 5) Plan action
+  // 6) DUERP + 7) Plan action
   makeTableSheet("DUERP", risksRows);
   makeTableSheet("Plan action", planActionRows);
+
+  // 8) Données tableau (brut) pour rapprocher la logique classeur du modèle de référence
+  const raw = workbook.addWorksheet("Données tableau");
+  const rawHeaders = [...DUERP_HEADERS, "Type de feuille"];
+  raw.addRow(rawHeaders).font = { bold: true };
+  raw.getRow(1).eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
+  });
+  for (const row of risksRows) {
+    raw.addRow([...DUERP_HEADERS.map((h) => row[h] ?? ""), "DUERP"]);
+  }
+  for (const row of planActionRows) {
+    raw.addRow([...DUERP_HEADERS.map((h) => row[h] ?? ""), "Plan action"]);
+  }
+  raw.columns = rawHeaders.map((_, i) => ({
+    width: i < DUERP_HEADERS.length ? Math.min(40, Math.max(12, i === 0 ? 24 : 16)) : 14,
+  }));
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
