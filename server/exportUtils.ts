@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import type { Risk } from "@shared/schema";
-import { familyLabelForExport } from "@shared/schema";
+import { familyLabelForExport, situationLabelForExport } from "@shared/schema";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, HeadingLevel, Media } from 'docx';
@@ -23,11 +23,12 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     const cleanDanger = hierarchyMatch ? hierarchyMatch[2] : risk.danger;
     
     const r = risk as Risk;
+    const sit = situationLabelForExport(r);
     return {
       'Site/Zone/Unité': hierarchy || risk.siteName || risk.source || 'Non spécifié',
       'Famille de risque': familyLabelForExport(r) || 'Non classifié',
       'Danger': cleanDanger || 'Non spécifié',
-      'Situation dangereuse': risk.type || 'Non spécifié',
+      'Situation dangereuse': !risk.type?.trim() ? 'Non spécifié' : sit || '',
       'Gravité': risk.gravity || 'Non spécifié',
       'Valeur G': risk.gravityValue || '',
       'Fréquence': risk.frequency || 'Non spécifié',
@@ -95,10 +96,6 @@ const RISKS_EXPORT_HEADERS = [
   'Score',
   'Mesures existantes',
   'Mesures à mettre en place',
-  'Responsable',
-  'Échéance',
-  'Statut',
-  'Commentaires'
 ] as const;
 
 export async function generateRisksExportExcel(
@@ -123,14 +120,7 @@ export async function generateRisksExportExcel(
 
   // Data rows
   for (const r of risks) {
-    const row = RISKS_EXPORT_HEADERS.map((h) => {
-      const v = r[h];
-      if (h === 'Échéance' && typeof v === 'string' && v) {
-        const d = new Date(v);
-        return isNaN(d.getTime()) ? v : d;
-      }
-      return v ?? '';
-    });
+    const row = RISKS_EXPORT_HEADERS.map((h) => r[h] ?? '');
     sheet.addRow(row);
   }
 
@@ -139,7 +129,7 @@ export async function generateRisksExportExcel(
   sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
 
   // Column widths (reasonable)
-  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
   sheet.columns = RISKS_EXPORT_HEADERS.map((_, i) => ({
     width: Math.min(50, Math.max(widths[i] || 12, 10))
   }));
@@ -156,7 +146,7 @@ export async function generateRisksAndPlanActionExportExcel(
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const lastCol = String.fromCharCode(64 + RISKS_EXPORT_HEADERS.length);
-  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
 
   const addSheet = (name: string, rows: Array<Record<string, string | number>>) => {
     const sheet = workbook.addWorksheet(name, {
@@ -172,14 +162,7 @@ export async function generateRisksAndPlanActionExportExcel(
       };
     });
     for (const r of rows) {
-      const row = RISKS_EXPORT_HEADERS.map((h) => {
-        const v = r[h];
-        if (h === 'Échéance' && typeof v === 'string' && v) {
-          const d = new Date(v);
-          return isNaN(d.getTime()) ? v : d;
-        }
-        return v ?? '';
-      });
+      const row = RISKS_EXPORT_HEADERS.map((h) => r[h] ?? '');
       sheet.addRow(row);
     }
     sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
@@ -333,14 +316,7 @@ export async function generateFullDuerpWorkbookExcel(
       };
     });
     for (const r of rows) {
-      const out = DUERP_HEADERS.map((h) => {
-        const v = r[h];
-        if (h === "Échéance" && typeof v === "string" && v) {
-          const d = new Date(v);
-          return Number.isNaN(d.getTime()) ? v : d;
-        }
-        return v ?? "";
-      });
+      const out = DUERP_HEADERS.map((h) => r[h] ?? "");
       const row = sheet.addRow(out);
       row.eachCell((cell) => {
         cell.alignment = { vertical: "top", wrapText: true };
@@ -354,7 +330,7 @@ export async function generateFullDuerpWorkbookExcel(
     }
     const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
     sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
-    const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+    const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
     sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
   };
 
@@ -440,11 +416,12 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   // Tableau des risques - Source en première colonne avec largeurs optimisées
   const tableData = risks.map((risk) => {
     const r = risk as Risk;
+    const sit = situationLabelForExport(r);
     return [
     risk.source || 'Non spécifié',
     familyLabelForExport(r) || 'Non spécifié',
     risk.danger || 'Non spécifié',
-    risk.type || 'Non spécifié',
+    !risk.type?.trim() ? 'Non spécifié' : sit || '',
     risk.gravity || 'Non spécifié',
     risk.frequency || 'Non spécifié',
     risk.control || 'Non spécifié',
