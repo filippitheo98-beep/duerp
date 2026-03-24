@@ -198,6 +198,7 @@ export default function HierarchicalEditorStep({
             situation: (r as any).situation,
             type: (r as any).type,
             danger: (r as any).danger,
+            riskEvent: (r as any).riskEvent,
           })),
         }),
       });
@@ -436,9 +437,10 @@ export default function HierarchicalEditorStep({
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[60px] text-center text-xs">Statut</TableHead>
                     <TableHead className="w-[160px] text-xs">Unité de travail</TableHead>
-                    <TableHead className="w-[100px] text-xs">Famille</TableHead>
-                    <TableHead className="w-[140px] text-xs">Situation</TableHead>
-                    <TableHead className="text-xs">Danger identifié</TableHead>
+                    <TableHead className="w-[100px] text-xs">Famille de risque</TableHead>
+                    <TableHead className="text-xs min-w-[120px]">Danger</TableHead>
+                    <TableHead className="w-[140px] text-xs">Situation dangereuse</TableHead>
+                    <TableHead className="text-xs min-w-[120px]">Risque</TableHead>
                     <TableHead className="w-[50px] text-center text-xs">G</TableHead>
                     <TableHead className="w-[50px] text-center text-xs">F</TableHead>
                     <TableHead className="w-[50px] text-center text-xs">M</TableHead>
@@ -468,8 +470,9 @@ export default function HierarchicalEditorStep({
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">{tr.risk.family || 'Autre'}</Badge>
                         </TableCell>
-                        <TableCell className="text-xs">{tr.risk.type}</TableCell>
                         <TableCell className="text-xs">{tr.risk.danger}</TableCell>
+                        <TableCell className="text-xs">{tr.risk.type}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{tr.risk.riskEvent || '—'}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.gravityValue}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.frequencyValue}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.controlValue}</TableCell>
@@ -562,9 +565,12 @@ export default function HierarchicalEditorStep({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px]">{risk.family}</Badge>
-                      <span className="text-sm font-medium">{risk.type}</span>
+                      {risk.riskEvent ? (
+                        <span className="text-sm font-medium">{risk.riskEvent}</span>
+                      ) : null}
                     </div>
-                    <p className="text-xs text-muted-foreground">{risk.danger}</p>
+                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/90">Danger :</span> {risk.danger}</p>
+                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/90">Situation :</span> {risk.type}</p>
                     <p className="text-xs text-muted-foreground mt-1">Mesures recommandées: {risk.measures}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge className={`text-[9px] ${PRIORITY_BADGE_COLORS[risk.priority] || ''}`}>
@@ -804,6 +810,9 @@ function RiskEditDialog({ tableRisk, onClose, onSave, readOnly = false }: {
   const [gravity, setGravity] = useState(String(r.gravityValue));
   const [frequency, setFrequency] = useState(String(r.frequencyValue));
   const [control, setControl] = useState(String(r.controlValue));
+  const [dangerText, setDangerText] = useState(r.danger || '');
+  const [situationText, setSituationText] = useState(r.type || '');
+  const [riskEventText, setRiskEventText] = useState(r.riskEvent || '');
   const [existingMeasures, setExistingMeasures] = useState<string[]>(r.existingMeasures || []);
   const [newMeasure, setNewMeasure] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -854,6 +863,9 @@ function RiskEditDialog({ tableRisk, onClose, onSave, readOnly = false }: {
   const handleSave = () => {
     onSave({
       ...r,
+      danger: dangerText.trim(),
+      type: situationText.trim(),
+      riskEvent: riskEventText.trim(),
       gravity: gLabel as Risk['gravity'],
       gravityValue: gVal,
       frequency: fLabel as Risk['frequency'],
@@ -878,17 +890,38 @@ function RiskEditDialog({ tableRisk, onClose, onSave, readOnly = false }: {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <LabelText className="text-xs text-muted-foreground">Famille</LabelText>
+              <LabelText className="text-xs text-muted-foreground">Famille de risque</LabelText>
               <p className="text-sm">{r.family}</p>
             </div>
-            <div>
-              <LabelText className="text-xs text-muted-foreground">Situation d'exposition</LabelText>
-              <p className="text-sm">{r.type}</p>
-            </div>
           </div>
-          <div>
-            <LabelText className="text-xs text-muted-foreground">Danger identifié</LabelText>
-            <p className="text-sm">{r.danger}</p>
+          <div className="space-y-3">
+            <div>
+              <LabelText className="text-xs text-muted-foreground mb-1.5 block">Danger</LabelText>
+              <p className="text-xs text-muted-foreground mb-1">Sources ou situations matérielles (ex. escaliers, installations électriques).</p>
+              {readOnly ? (
+                <p className="text-sm">{r.danger}</p>
+              ) : (
+                <Textarea value={dangerText} onChange={(e) => setDangerText(e.target.value)} rows={2} className="text-sm" />
+              )}
+            </div>
+            <div>
+              <LabelText className="text-xs text-muted-foreground mb-1.5 block">Situation dangereuse</LabelText>
+              <p className="text-xs text-muted-foreground mb-1">Contexte ou exposition (ex. changement d&apos;ampoule sous tension).</p>
+              {readOnly ? (
+                <p className="text-sm">{r.type}</p>
+              ) : (
+                <Textarea value={situationText} onChange={(e) => setSituationText(e.target.value)} rows={2} className="text-sm" />
+              )}
+            </div>
+            <div>
+              <LabelText className="text-xs text-muted-foreground mb-1.5 block">Risque</LabelText>
+              <p className="text-xs text-muted-foreground mb-1">Événement redouté (ex. chute, électrocution).</p>
+              {readOnly ? (
+                <p className="text-sm">{r.riskEvent || '—'}</p>
+              ) : (
+                <Textarea value={riskEventText} onChange={(e) => setRiskEventText(e.target.value)} rows={2} className="text-sm" placeholder="Ex. électrocution, chute" />
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -1049,8 +1082,9 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
 }) {
   const { toast } = useToast();
   const [family, setFamily] = useState<string>('Mécanique');
+  const [dangerSource, setDangerSource] = useState('');
   const [situation, setSituation] = useState('');
-  const [description, setDescription] = useState('');
+  const [riskEvent, setRiskEvent] = useState('');
   const [measures, setMeasures] = useState('');
   const [gravity, setGravity] = useState('4');
   const [frequency, setFrequency] = useState('4');
@@ -1068,8 +1102,8 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
   const mLabel = CONTROL_OPTIONS.find(o => o.value === mVal)?.label || 'Moyenne';
 
   const handleCreate = async () => {
-    if (!situation.trim() || !description.trim()) {
-      toast({ title: "Champs requis", description: "La situation et la description sont obligatoires", variant: "destructive" });
+    if (!situation.trim() || !dangerSource.trim() || !riskEvent.trim()) {
+      toast({ title: "Champs requis", description: "Le danger, la situation dangereuse et le risque (événement) sont obligatoires", variant: "destructive" });
       return;
     }
 
@@ -1082,12 +1116,12 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
           sector: 'TOUS',
           hierarchyLevel: 'Unité',
           situation: situation.trim(),
-          description: description.trim(),
+          description: `${dangerSource.trim()}${riskEvent.trim() ? ` — Risque : ${riskEvent.trim()}` : ''}`,
           defaultGravity: gLabel,
           defaultFrequency: fLabel,
           defaultControl: mLabel,
           measures: measures.trim(),
-          keywords: situation.toLowerCase(),
+          keywords: `${situation} ${dangerSource} ${riskEvent}`.toLowerCase(),
         }),
       });
 
@@ -1095,7 +1129,8 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
         id: crypto.randomUUID(),
         type: situation.trim(),
         family: family as RiskFamily,
-        danger: description.trim(),
+        danger: dangerSource.trim(),
+        riskEvent: riskEvent.trim(),
         source: unitName,
         sourceType: 'Lieu',
         gravity: gLabel as Risk['gravity'],
@@ -1147,21 +1182,34 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
           </div>
 
           <div>
-            <LabelText className="text-xs text-muted-foreground mb-1.5 block">Situation d'exposition *</LabelText>
-            <Input
-              placeholder="Ex: Travail en hauteur sur nacelle"
-              value={situation}
-              onChange={(e) => setSituation(e.target.value)}
-              className="h-9"
+            <LabelText className="text-xs text-muted-foreground mb-1.5 block">Danger *</LabelText>
+            <p className="text-xs text-muted-foreground mb-1">Sources ou éléments dangereux présents (ex. escaliers, installations électriques).</p>
+            <Textarea
+              placeholder="Ex: escaliers, câblage électrique accessible"
+              value={dangerSource}
+              onChange={(e) => setDangerSource(e.target.value)}
+              rows={2}
             />
           </div>
 
           <div>
-            <LabelText className="text-xs text-muted-foreground mb-1.5 block">Description du danger *</LabelText>
+            <LabelText className="text-xs text-muted-foreground mb-1.5 block">Situation dangereuse *</LabelText>
+            <p className="text-xs text-muted-foreground mb-1">Contexte ou exposition (ex. changement d&apos;ampoule sous tension).</p>
             <Textarea
-              placeholder="Ex: Chute de hauteur lors d'intervention sur nacelle élévatrice"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex: intervention sur luminaire sans coupure de courant"
+              value={situation}
+              onChange={(e) => setSituation(e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <LabelText className="text-xs text-muted-foreground mb-1.5 block">Risque (événement) *</LabelText>
+            <p className="text-xs text-muted-foreground mb-1">Dommage ou événement redouté (ex. électrocution, chute).</p>
+            <Textarea
+              placeholder="Ex: électrocution, chute dans l'escalier"
+              value={riskEvent}
+              onChange={(e) => setRiskEvent(e.target.value)}
               rows={2}
             />
           </div>
@@ -1231,7 +1279,7 @@ function CreateCustomRiskDialog({ unitName, onClose, onRiskCreated }: {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={isSaving || !situation.trim() || !description.trim()}>
+          <Button onClick={handleCreate} disabled={isSaving || !situation.trim() || !dangerSource.trim() || !riskEvent.trim()}>
             {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
             Créer et ajouter
           </Button>

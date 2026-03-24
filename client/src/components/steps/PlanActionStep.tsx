@@ -273,7 +273,7 @@ export default function PlanActionStep({
         method: "POST",
         body: JSON.stringify({
           title,
-          description: riskDanger ? `Risque: ${riskDanger}` : undefined,
+          description: riskDanger ? `Contexte risque: ${riskDanger}` : undefined,
           priority: priority?.includes("Priorité 1") ? "critical" : priority?.includes("Priorité 2") ? "high" : "medium",
           sourceType: "risk",
           sourceId: riskId,
@@ -297,7 +297,14 @@ export default function PlanActionStep({
       createActionForRiskMutation.mutate({
         riskId: row.risk.id,
         title: trimmed,
-        riskDanger: row.risk.danger,
+        riskDanger: [
+          row.risk.family,
+          row.risk.danger,
+          row.risk.type,
+          row.risk.riskEvent,
+        ]
+          .filter(Boolean)
+          .join(" · "),
         priority: row.risk.priority,
       });
     }
@@ -536,9 +543,10 @@ export default function PlanActionStep({
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[60px] text-center text-xs">Statut</TableHead>
                       <TableHead className="w-[160px] text-xs">Unité de travail</TableHead>
-                      <TableHead className="w-[100px] text-xs">Famille</TableHead>
-                      <TableHead className="w-[140px] text-xs">Situation</TableHead>
-                      <TableHead className="text-xs">Danger identifié</TableHead>
+                      <TableHead className="w-[100px] text-xs">Famille de risque</TableHead>
+                      <TableHead className="text-xs min-w-[110px]">Danger</TableHead>
+                      <TableHead className="w-[130px] text-xs">Situation dangereuse</TableHead>
+                      <TableHead className="text-xs min-w-[100px]">Risque</TableHead>
                       <TableHead className="w-[110px] text-xs">Priorité</TableHead>
                       <TableHead className="text-xs max-w-[200px]">Complété (mesures existantes)</TableHead>
                       <TableHead className="min-w-[180px] text-xs">Mesures à mettre en place</TableHead>
@@ -574,8 +582,9 @@ export default function PlanActionStep({
                           <TableCell>
                             <Badge variant="outline" className="text-[10px]">{row.risk.family || "Autre"}</Badge>
                           </TableCell>
-                          <TableCell className="text-xs">{row.risk.type || "—"}</TableCell>
                           <TableCell className="text-xs">{row.risk.danger || "—"}</TableCell>
+                          <TableCell className="text-xs">{row.risk.type || "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{row.risk.riskEvent || "—"}</TableCell>
                           <TableCell>
                             <Badge className={`text-[10px] ${PRIORITY_BADGE_COLORS[priority] || ""}`}>
                               <PIcon className="h-3 w-3 mr-1 inline" />

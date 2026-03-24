@@ -136,9 +136,10 @@ function convertLibraryRiskToRisk(libRisk: LibraryRisk): Risk & { catalogId?: nu
   return {
     id: crypto.randomUUID(),
     catalogId: libRisk.id, // Track catalog source for deduplication
-    danger: libRisk.situation,
-    type: libRisk.family,
     family: libRisk.family as any,
+    danger: libRisk.description || '',
+    type: libRisk.situation || '',
+    riskEvent: '',
     source: `INRS #${libRisk.id}`,
     sourceType: 'Lieu',
     gravity,

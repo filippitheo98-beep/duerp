@@ -364,9 +364,13 @@ export type HierarchyLevel = 'Site' | 'Unité';
 export interface Risk {
   id: string;
   catalogId?: number; // Reference to risk_library.id for deduplication
+  /** Situation dangereuse, contexte ou exposition */
   type: string;
-  family: RiskFamily; // Classification par famille de risque
+  family: RiskFamily; // Famille de risque (colonne dédiée dans les tableaux / exports)
+  /** Sources de danger dans l’entreprise (ex. escaliers, installations électriques) */
   danger: string;
+  /** Événement / dommage redouté (ex. chute, électrocution) — distinct du danger (source) */
+  riskEvent?: string;
   gravity: 'Faible' | 'Moyenne' | 'Grave' | 'Très Grave';
   gravityValue: 1 | 4 | 20 | 100;
   frequency: 'Annuelle' | 'Mensuelle' | 'Hebdomadaire' | 'Journalière';
@@ -389,6 +393,53 @@ export interface Risk {
   isInherited: boolean; // Hérité d'un niveau supérieur
   inheritedFrom?: string; // ID de l'élément parent source
   userModified: boolean; // Modifié par l'utilisateur après génération
+}
+
+/** Libellés reconnus comme « famille » pour les exports (repli si données anciennes). */
+const RISK_FAMILY_LABELS_FOR_EXPORT = new Set<string>([
+  'Mécanique',
+  'Physique',
+  'Chimique',
+  'Biologique',
+  'Radiologique',
+  'Incendie-Explosion',
+  'Électrique',
+  'Ergonomique',
+  'Psychosocial',
+  'Routier',
+  'Environnemental',
+  'Organisationnel',
+  'Chutes',
+  'Autre',
+]);
+
+/** Famille affichée dans Excel/PDF : `family`, ou repli si la famille était dans riskEvent ou type (anciennes fiches). */
+export function familyLabelForExport(risk: Risk): string {
+  const f = (risk.family || '').trim();
+  if (f) return f;
+  const re = (risk.riskEvent || '').trim();
+  if (re && RISK_FAMILY_LABELS_FOR_EXPORT.has(re)) return re;
+  const t = (risk.type || '').trim();
+  if (t && RISK_FAMILY_LABELS_FOR_EXPORT.has(t)) return t;
+  return '';
+}
+
+/**
+ * Situation dangereuse à l’export : si `type` ne contient qu’un libellé de famille (sans `family` explicite),
+ * on l’affiche déjà en colonne famille — ne pas dupliquer en colonne situation.
+ */
+export function situationLabelForExport(risk: Risk): string {
+  const t = (risk.type || '').trim();
+  if (!t) return '';
+  const fam = (risk.family || '').trim();
+  if (fam) {
+    if (t === fam) return '';
+    return t;
+  }
+  if (RISK_FAMILY_LABELS_FOR_EXPORT.has(t) && familyLabelForExport(risk) === t) {
+    return '';
+  }
+  return t;
 }
 
 // Mesure de prévention avec lien hiérarchique

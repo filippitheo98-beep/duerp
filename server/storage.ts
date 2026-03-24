@@ -21,6 +21,7 @@ import type {
   UploadedDocument,
   InsertUploadedDocument,
 } from "@shared/schema";
+import { familyLabelForExport, situationLabelForExport } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, asc, ne } from "drizzle-orm";
 import crypto from 'crypto';
@@ -196,19 +197,15 @@ export class DatabaseStorage implements IStorage {
     
     const toRow = (risk: Risk, lieuUnite: string) => ({
       'Lieu / Unité de travail': lieuUnite,
+      'Famille de risque': familyLabelForExport(risk),
       'Danger': risk.danger || '',
-      'Situation dangereuse': risk.type || '',
-      'Risque': (risk as Risk & { family?: string }).family || '',
+      'Situation dangereuse': situationLabelForExport(risk),
       'Gravité': risk.gravity || '',
       'Fréquence/Probabilité': risk.frequency || '',
       'Maîtrise': risk.control || '',
       'Score': risk.riskScore ?? 0,
       'Mesures existantes': Array.isArray(risk.existingMeasures) ? risk.existingMeasures.join(' ; ') : '',
       'Mesures à mettre en place': risk.measures || '',
-      'Responsable': '',
-      'Échéance': '',
-      'Statut': (risk as Risk & { isValidated?: boolean }).isValidated ? 'Validé' : 'Non validé',
-      'Commentaires': ''
     });
     
     // 1. Risks from work_units_data
@@ -256,19 +253,15 @@ export class DatabaseStorage implements IStorage {
     const flatRisks: Array<Record<string, string | number>> = [];
     const toRow = (risk: Risk, lieuUnite: string) => ({
       'Lieu / Unité de travail': lieuUnite,
+      'Famille de risque': familyLabelForExport(risk),
       'Danger': risk.danger || '',
-      'Situation dangereuse': risk.type || '',
-      'Risque': (risk as Risk & { family?: string }).family || '',
+      'Situation dangereuse': situationLabelForExport(risk),
       'Gravité': risk.gravity || '',
       'Fréquence/Probabilité': risk.frequency || '',
       'Maîtrise': risk.control || '',
       'Score': risk.riskScore ?? 0,
       'Mesures existantes': Array.isArray(risk.existingMeasures) ? risk.existingMeasures.join(' ; ') : '',
       'Mesures à mettre en place': actionByRiskId.get(risk.id) ?? risk.measures ?? '',
-      'Responsable': '',
-      'Échéance': '',
-      'Statut': (risk as Risk & { isValidated?: boolean }).isValidated ? 'Validé' : 'Non validé',
-      'Commentaires': ''
     });
     const workUnits = (doc.workUnitsData as WorkUnit[]) || [];
     for (const unit of workUnits) {
@@ -571,7 +564,12 @@ export class DatabaseStorage implements IStorage {
       `- champs courts`,
       `- enums: gravity=Faible|Moyenne|Grave|Très Grave ; frequency=Annuelle|Mensuelle|Hebdomadaire|Journalière ; control=Très élevée|Élevée|Moyenne|Absente`,
       ``,
-      `JSON attendu: {"risks":[{"family":"Ergonomique","situation":"...","danger":"...","gravity":"Moyenne","frequency":"Mensuelle","control":"Moyenne","measures":"...","existingMeasures":[]}]}`,
+      `Sémantique des champs texte:`,
+      `- family: famille de risque (enum).`,
+      `- danger: sources / situations matérielles présentes (ex. escaliers, installations électriques).`,
+      `- situation: situation dangereuse ou contexte d'exposition (ex. changement d'ampoule sous tension).`,
+      `- riskEvent: événement redouté / dommage (ex. électrocution, chute).`,
+      `JSON attendu: {"risks":[{"family":"Ergonomique","danger":"...","situation":"...","riskEvent":"...","gravity":"Moyenne","frequency":"Mensuelle","control":"Moyenne","measures":"...","existingMeasures":[]}]}`,
     ].filter(Boolean).join('\n');
 
     try {
@@ -589,13 +587,14 @@ export class DatabaseStorage implements IStorage {
                 family: { type: 'string', enum: familyList },
                 situation: { type: 'string' },
                 danger: { type: 'string' },
+                riskEvent: { type: 'string' },
                 gravity: { type: 'string', enum: ['Faible', 'Moyenne', 'Grave', 'Très Grave'] },
                 frequency: { type: 'string', enum: ['Annuelle', 'Mensuelle', 'Hebdomadaire', 'Journalière'] },
                 control: { type: 'string', enum: ['Très élevée', 'Élevée', 'Moyenne', 'Absente'] },
                 measures: { type: 'string' },
                 existingMeasures: { type: 'array', items: { type: 'string' } },
               },
-              required: ['family', 'situation', 'danger', 'gravity', 'frequency', 'control', 'measures', 'existingMeasures'],
+              required: ['family', 'situation', 'danger', 'riskEvent', 'gravity', 'frequency', 'control', 'measures', 'existingMeasures'],
             },
           },
         },
@@ -650,16 +649,21 @@ export class DatabaseStorage implements IStorage {
         const riskScore = gravityValue * frequencyValue * controlValue;
         const priority = riskScore >= 500 ? 'Priorité 1 (Forte)' : riskScore >= 100 ? 'Priorité 2 (Moyenne)' : riskScore >= 10 ? 'Priorité 3 (Modéré)' : 'Priorité 4 (Faible)';
         
-        // Utiliser "situation" si présent, sinon "danger" pour rétrocompatibilité
         const situationText = risk.situation || risk.type || 'Situation non spécifiée';
-        const dangerText = risk.danger || situationText;
-        
+        const dangerText = risk.danger || '';
+        const riskEventText =
+          typeof risk.riskEvent === 'string' && risk.riskEvent.trim()
+            ? risk.riskEvent.trim()
+            : typeof (risk as { risk?: string }).risk === 'string'
+              ? String((risk as { risk?: string }).risk).trim()
+              : '';
+
         return {
           id: crypto.randomUUID(),
           type: situationText,
           family: risk.family || 'Autre',
-          situation: situationText,
-          danger: dangerText,
+          danger: dangerText.trim() || 'Non spécifié',
+          riskEvent: riskEventText,
           gravity: gravity as 'Faible' | 'Moyenne' | 'Grave' | 'Très Grave',
           gravityValue: gravityValue as 1 | 4 | 20 | 100,
           frequency: frequency as 'Annuelle' | 'Mensuelle' | 'Hebdomadaire' | 'Journalière',

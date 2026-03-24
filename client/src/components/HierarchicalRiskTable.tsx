@@ -207,9 +207,10 @@ export default function HierarchicalRiskTable({
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-[200px]">Unité de travail</TableHead>
-                  <TableHead className="w-[120px]">Famille</TableHead>
-                  <TableHead className="w-[150px]">Type de risque</TableHead>
-                  <TableHead>Danger identifié</TableHead>
+                  <TableHead className="w-[120px]">Famille de risque</TableHead>
+                  <TableHead className="w-[150px]">Danger</TableHead>
+                  <TableHead className="w-[160px]">Situation dangereuse</TableHead>
+                  <TableHead className="min-w-[140px]">Risque</TableHead>
                   <TableHead className="w-[80px] text-center">G</TableHead>
                   <TableHead className="w-[80px] text-center">F</TableHead>
                   <TableHead className="w-[80px] text-center">M</TableHead>
@@ -237,11 +238,14 @@ export default function HierarchicalRiskTable({
                             {risk.family || 'Autre'}
                           </Badge>
                         </TableCell>
+                        <TableCell className="text-sm">
+                          {risk.danger}
+                        </TableCell>
                         <TableCell className="font-medium text-sm">
                           {risk.type}
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {risk.danger}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {risk.riskEvent || '—'}
                         </TableCell>
                         <TableCell className="text-center text-xs">
                           {risk.gravityValue || risk.gravity}
