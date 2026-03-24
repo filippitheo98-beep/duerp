@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
+import type { Risk } from "@shared/schema";
+import { familyLabelForExport } from "@shared/schema";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, HeadingLevel, Media } from 'docx';
@@ -20,12 +22,12 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     const hierarchy = hierarchyMatch ? hierarchyMatch[1] : '';
     const cleanDanger = hierarchyMatch ? hierarchyMatch[2] : risk.danger;
     
+    const r = risk as Risk;
     return {
       'Site/Zone/Unité': hierarchy || risk.siteName || risk.source || 'Non spécifié',
-      'Famille de risque': risk.family || 'Non classifié',
+      'Famille de risque': familyLabelForExport(r) || 'Non classifié',
       'Danger': cleanDanger || 'Non spécifié',
       'Situation dangereuse': risk.type || 'Non spécifié',
-      'Risque': risk.riskEvent || '',
       'Gravité': risk.gravity || 'Non spécifié',
       'Valeur G': risk.gravityValue || '',
       'Fréquence': risk.frequency || 'Non spécifié',
@@ -48,7 +50,6 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     { wch: 18 }, // Famille de risque
     { wch: 32 }, // Danger
     { wch: 28 }, // Situation dangereuse
-    { wch: 28 }, // Risque (événement)
     { wch: 12 }, // Gravité
     { wch: 6 },  // Valeur G
     { wch: 12 }, // Fréquence
@@ -88,7 +89,6 @@ const RISKS_EXPORT_HEADERS = [
   'Famille de risque',
   'Danger',
   'Situation dangereuse',
-  'Risque',
   'Gravité',
   'Fréquence/Probabilité',
   'Maîtrise',
@@ -139,7 +139,7 @@ export async function generateRisksExportExcel(
   sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
 
   // Column widths (reasonable)
-  const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
   sheet.columns = RISKS_EXPORT_HEADERS.map((_, i) => ({
     width: Math.min(50, Math.max(widths[i] || 12, 10))
   }));
@@ -156,7 +156,7 @@ export async function generateRisksAndPlanActionExportExcel(
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const lastCol = String.fromCharCode(64 + RISKS_EXPORT_HEADERS.length);
-  const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
 
   const addSheet = (name: string, rows: Array<Record<string, string | number>>) => {
     const sheet = workbook.addWorksheet(name, {
@@ -354,7 +354,7 @@ export async function generateFullDuerpWorkbookExcel(
     }
     const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
     sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
-    const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+    const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
     sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
   };
 
@@ -438,22 +438,24 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   doc.text('TABLEAU DES RISQUES IDENTIFIÉS', pageWidth / 2, 30, { align: 'center' });
   
   // Tableau des risques - Source en première colonne avec largeurs optimisées
-  const tableData = risks.map(risk => [
+  const tableData = risks.map((risk) => {
+    const r = risk as Risk;
+    return [
     risk.source || 'Non spécifié',
-    risk.family || 'Non spécifié',
+    familyLabelForExport(r) || 'Non spécifié',
     risk.danger || 'Non spécifié',
     risk.type || 'Non spécifié',
-    risk.riskEvent || '',
     risk.gravity || 'Non spécifié',
     risk.frequency || 'Non spécifié',
     risk.control || 'Non spécifié',
     risk.riskScore ? risk.riskScore.toFixed(2) : '0',
     risk.priority || 'Non défini',
     risk.measures || 'À définir'
-  ]);
+  ];
+  });
   
   autoTable(doc, {
-    head: [['Source', 'Famille', 'Danger', 'Situation dangereuse', 'Risque', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
+    head: [['Source', 'Famille', 'Danger', 'Situation dangereuse', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
     body: tableData,
     startY: 50,
     styles: { 
@@ -476,13 +478,12 @@ export async function generatePDFFile(risks: any[], companyName: string, company
       1: { cellWidth: 'auto', halign: 'left' },
       2: { cellWidth: 'auto', halign: 'left' },
       3: { cellWidth: 'auto', halign: 'left' },
-      4: { cellWidth: 'auto', halign: 'left' },
+      4: { cellWidth: 'auto', halign: 'center' },
       5: { cellWidth: 'auto', halign: 'center' },
       6: { cellWidth: 'auto', halign: 'center' },
       7: { cellWidth: 'auto', halign: 'center' },
       8: { cellWidth: 'auto', halign: 'center' },
-      9: { cellWidth: 'auto', halign: 'center' },
-      10: { cellWidth: 'auto', halign: 'left' }
+      9: { cellWidth: 'auto', halign: 'left' }
     },
     margin: { top: 30, left: 8, right: 8, bottom: 30 },
     pageBreak: 'auto',
