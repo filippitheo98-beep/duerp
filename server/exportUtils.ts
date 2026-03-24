@@ -23,8 +23,9 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     return {
       'Site/Zone/Unité': hierarchy || risk.siteName || risk.source || 'Non spécifié',
       'Famille de risque': risk.family || 'Non classifié',
-      'Type de risque': risk.type || 'Non spécifié',
-      'Danger/Dommage': cleanDanger || 'Non spécifié',
+      'Danger': cleanDanger || 'Non spécifié',
+      'Situation dangereuse': risk.type || 'Non spécifié',
+      'Risque': risk.riskEvent || '',
       'Gravité': risk.gravity || 'Non spécifié',
       'Valeur G': risk.gravityValue || '',
       'Fréquence': risk.frequency || 'Non spécifié',
@@ -45,8 +46,9 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
   const columnWidths = [
     { wch: 30 }, // Site/Zone/Unité
     { wch: 18 }, // Famille de risque
-    { wch: 18 }, // Type de risque
-    { wch: 40 }, // Danger/Dommage
+    { wch: 32 }, // Danger
+    { wch: 28 }, // Situation dangereuse
+    { wch: 28 }, // Risque (événement)
     { wch: 12 }, // Gravité
     { wch: 6 },  // Valeur G
     { wch: 12 }, // Fréquence
@@ -83,6 +85,7 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
 
 const RISKS_EXPORT_HEADERS = [
   'Lieu / Unité de travail',
+  'Famille de risque',
   'Danger',
   'Situation dangereuse',
   'Risque',
@@ -136,7 +139,7 @@ export async function generateRisksExportExcel(
   sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
 
   // Column widths (reasonable)
-  const widths = [25, 35, 30, 18, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
   sheet.columns = RISKS_EXPORT_HEADERS.map((_, i) => ({
     width: Math.min(50, Math.max(widths[i] || 12, 10))
   }));
@@ -153,7 +156,7 @@ export async function generateRisksAndPlanActionExportExcel(
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const lastCol = String.fromCharCode(64 + RISKS_EXPORT_HEADERS.length);
-  const widths = [25, 35, 30, 18, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+  const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
 
   const addSheet = (name: string, rows: Array<Record<string, string | number>>) => {
     const sheet = workbook.addWorksheet(name, {
@@ -351,7 +354,7 @@ export async function generateFullDuerpWorkbookExcel(
     }
     const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
     sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
-    const widths = [25, 35, 30, 18, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+    const widths = [25, 18, 32, 30, 28, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
     sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
   };
 
@@ -437,8 +440,10 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   // Tableau des risques - Source en première colonne avec largeurs optimisées
   const tableData = risks.map(risk => [
     risk.source || 'Non spécifié',
-    risk.type || 'Non spécifié',
+    risk.family || 'Non spécifié',
     risk.danger || 'Non spécifié',
+    risk.type || 'Non spécifié',
+    risk.riskEvent || '',
     risk.gravity || 'Non spécifié',
     risk.frequency || 'Non spécifié',
     risk.control || 'Non spécifié',
@@ -448,7 +453,7 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   ]);
   
   autoTable(doc, {
-    head: [['Source', 'Type de risque', 'Danger', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
+    head: [['Source', 'Famille', 'Danger', 'Situation dangereuse', 'Risque', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
     body: tableData,
     startY: 50,
     styles: { 
@@ -467,15 +472,17 @@ export async function generatePDFFile(risks: any[], companyName: string, company
     },
     alternateRowStyles: { fillColor: [248, 248, 248] },
     columnStyles: {
-      0: { cellWidth: 'auto', halign: 'left' },     // Source
-      1: { cellWidth: 'auto', halign: 'left' },     // Type de risque
-      2: { cellWidth: 'auto', halign: 'left' },     // Danger
-      3: { cellWidth: 'auto', halign: 'center' },   // Gravité
-      4: { cellWidth: 'auto', halign: 'center' },   // Fréquence
-      5: { cellWidth: 'auto', halign: 'center' },   // Maîtrise
-      6: { cellWidth: 'auto', halign: 'center' },   // Score
-      7: { cellWidth: 'auto', halign: 'center' },   // Priorité
-      8: { cellWidth: 'auto', halign: 'left' }      // Mesures
+      0: { cellWidth: 'auto', halign: 'left' },
+      1: { cellWidth: 'auto', halign: 'left' },
+      2: { cellWidth: 'auto', halign: 'left' },
+      3: { cellWidth: 'auto', halign: 'left' },
+      4: { cellWidth: 'auto', halign: 'left' },
+      5: { cellWidth: 'auto', halign: 'center' },
+      6: { cellWidth: 'auto', halign: 'center' },
+      7: { cellWidth: 'auto', halign: 'center' },
+      8: { cellWidth: 'auto', halign: 'center' },
+      9: { cellWidth: 'auto', halign: 'center' },
+      10: { cellWidth: 'auto', halign: 'left' }
     },
     margin: { top: 30, left: 8, right: 8, bottom: 30 },
     pageBreak: 'auto',

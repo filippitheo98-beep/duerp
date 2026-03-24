@@ -1116,7 +1116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Avoid duplicates when user requests more risks
       if (Array.isArray(existingRisks) && existingRisks.length > 0) {
         const existingLines = existingRisks
-          .map((r: any) => `${r.family ? `[${r.family}] ` : ''}${r.situation || r.type || ''} - ${r.danger || ''}`.trim())
+          .map((r: any) =>
+            `${r.family ? `[${r.family}] ` : ''}${r.situation || r.type || ''} — ${r.danger || ''}${r.riskEvent ? ` — ${r.riskEvent}` : ''}`.trim()
+          )
           .filter(Boolean)
           .slice(0, 20);
         if (existingLines.length) {
