@@ -31,6 +31,8 @@ export const users = pgTable("users", {
   lastName: varchar("last_name", { length: 100 }),
   role: varchar("role", { length: 50 }).default("user"), // admin, editor, viewer
   companyId: integer("company_id").references(() => companies.id),
+  openAiApiKey: text("openai_api_key"),
+  openAiModel: varchar("openai_model", { length: 100 }).default("gpt-4o-mini"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
   createdAt: timestamp("created_at").defaultNow(),

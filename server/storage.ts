@@ -27,6 +27,11 @@ import crypto from 'crypto';
 import { generateJson } from './ai-openai';
 import { DUERP_JSON_SYSTEM_PROMPT } from './ai-prompts';
 
+type OpenAiUserConfig = {
+  apiKey: string;
+  model?: string | null;
+};
+
 export interface IStorage {
   // Company operations
   getCompany(id: number): Promise<Company | undefined>;
@@ -63,7 +68,13 @@ export interface IStorage {
   }): Promise<DuerpDocument>;
   
   // Risk operations
-  generateRisks(workUnitName: string, locationName: string, companyActivity: string, companyDescription?: string): Promise<Risk[]>;
+  generateRisks(
+    workUnitName: string,
+    locationName: string,
+    companyActivity: string,
+    companyDescription?: string,
+    openAiConfig?: OpenAiUserConfig
+  ): Promise<Risk[]>;
   getRiskTemplates(sector?: string): Promise<RiskTemplate[]>;
   createRiskTemplate(template: Omit<RiskTemplate, 'id' | 'createdAt'>): Promise<RiskTemplate>;
   
@@ -384,10 +395,16 @@ export class DatabaseStorage implements IStorage {
     return riskTemplate;
   }
 
-  async generateRisks(workUnitName: string, locationName: string, companyActivity: string, companyDescription?: string): Promise<Risk[]> {
+  async generateRisks(
+    workUnitName: string,
+    locationName: string,
+    companyActivity: string,
+    companyDescription?: string,
+    openAiConfig?: OpenAiUserConfig
+  ): Promise<Risk[]> {
     // Utilise Ollama (local) pour générer des risques contextuels
     try {
-      const aiRisks = await this.generateAIRisks(workUnitName, locationName, companyActivity, companyDescription);
+      const aiRisks = await this.generateAIRisks(workUnitName, locationName, companyActivity, companyDescription, openAiConfig);
       if (aiRisks.length > 0) {
         return aiRisks;
       }
@@ -428,7 +445,13 @@ export class DatabaseStorage implements IStorage {
     return risks;
   }
 
-  private async generateAIRisks(workUnitName: string, locationName: string, companyActivity: string, companyDescription?: string): Promise<Risk[]> {
+  private async generateAIRisks(
+    workUnitName: string,
+    locationName: string,
+    companyActivity: string,
+    companyDescription?: string,
+    openAiConfig?: OpenAiUserConfig
+  ): Promise<Risk[]> {
     const desiredMax = 8;
 
     const prompt = [
@@ -453,7 +476,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const content = await generateJson(prompt, {
         systemPrompt: DUERP_JSON_SYSTEM_PROMPT,
-        maxOutputTokens: 900
+        maxOutputTokens: 900,
+        apiKeyOverride: openAiConfig?.apiKey,
+        modelOverride: openAiConfig?.model || undefined,
       });
       const result = content ? JSON.parse(content) : { risks: [] };
       const risksArrayRaw = Array.isArray(result?.risks) ? result.risks : [];
@@ -503,7 +528,8 @@ export class DatabaseStorage implements IStorage {
     elementDescription: string,
     companyActivity: string,
     context: string,
-    count?: number
+    count?: number,
+    openAiConfig?: OpenAiUserConfig
   ): Promise<Risk[]> {
     
     const levelRules: Record<string, { allowed: string; forbidden: string }> = {
@@ -581,7 +607,9 @@ export class DatabaseStorage implements IStorage {
         systemPrompt: DUERP_JSON_SYSTEM_PROMPT,
         // 8 risques => plus de tokens pour éviter un JSON tronqué
         maxOutputTokens: tokenBudget,
-        responseJsonSchema: schema
+        responseJsonSchema: schema,
+        apiKeyOverride: openAiConfig?.apiKey,
+        modelOverride: openAiConfig?.model || undefined,
       });
       let result: { risks?: unknown };
       try {

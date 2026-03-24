@@ -6,8 +6,6 @@ import { createUser, createPasswordResetToken, resetPasswordWithToken, changePas
 import type { RequestHandler } from "express";
 import bcrypt from "bcryptjs";
 import passport from "passport";
-import fs from "fs";
-import { join, dirname } from "path";
 import { generateRisksRequestSchema, insertCompanySchema, type Risk, type Site, type WorkUnit } from "@shared/schema";
 import {
   duerpDocuments,
@@ -75,29 +73,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // --- Configuration OpenAI (déploiement multi-PC) ---
-  // Stocke `OPENAI_API_KEY` / `OPENAI_MODEL` dans `duerp.env` sous `DUERP_USERDATA_DIR`.
-  const duerpEnvPath = () => {
-    const dir = process.env.DUERP_USERDATA_DIR || process.cwd();
-    return join(dir, "duerp.env");
-  };
+  // --- Configuration OpenAI par utilisateur ---
+  // L'utilisateur se connecte d'abord, puis configure sa propre clé.
+  await db.execute(sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS openai_api_key text
+  `);
+  await db.execute(sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS openai_model varchar(100) DEFAULT 'gpt-4o-mini'
+  `);
 
-  app.get("/api/config", (req, res) => {
-    const filePath = duerpEnvPath();
-    const hasUserConfigFile = fs.existsSync(filePath);
+  async function getUserOpenAiConfig(userId: number) {
+    const rows = await db
+      .select({
+        openAiApiKey: users.openAiApiKey,
+        openAiModel: users.openAiModel,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const row = rows[0];
+    return {
+      apiKey: row?.openAiApiKey?.trim() || "",
+      model: row?.openAiModel?.trim() || "gpt-4o-mini",
+      hasKey: !!row?.openAiApiKey?.trim(),
+    };
+  }
 
-    // On veut un comportement "par PC":
-    // si `duerp.env` n'existe pas dans `userData`, on considère la config IA comme absente,
-    // même si une valeur a été embarquée via l'environnement.
-    const openAiApiKey = hasUserConfigFile ? process.env.OPENAI_API_KEY?.trim() : "";
-    const openAiModel = process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
+  app.get("/api/config", isAuthenticated, async (req: any, res) => {
+    const userId = Number(req?.user?.id);
+    if (!Number.isFinite(userId)) return res.status(401).json({ message: "Non authentifié" });
+    const cfg = await getUserOpenAiConfig(userId);
     res.json({
-      openAiApiKeyPresent: hasUserConfigFile && !!openAiApiKey,
-      openAiModel,
+      openAiApiKeyPresent: cfg.hasKey,
+      openAiModel: cfg.model,
     });
   });
 
-  app.post("/api/config", async (req, res) => {
+  app.post("/api/config", isAuthenticated, async (req: any, res) => {
     const schema = z.object({
       OPENAI_API_KEY: z.string().min(1),
       OPENAI_MODEL: z.string().min(1).optional(),
@@ -107,20 +121,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Requête config invalide" });
     }
 
+    const userId = Number(req?.user?.id);
+    if (!Number.isFinite(userId)) return res.status(401).json({ message: "Non authentifié" });
+
     const openAiApiKey = body.data.OPENAI_API_KEY.trim();
     const openAiModel = (body.data.OPENAI_MODEL?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini").trim();
 
     try {
-      const filePath = duerpEnvPath();
-      fs.mkdirSync(dirname(filePath), { recursive: true });
-      fs.writeFileSync(
-        filePath,
-        [`OPENAI_API_KEY=${openAiApiKey}`, `OPENAI_MODEL=${openAiModel}`, ""].join("\n"),
-        "utf8"
-      );
-
-      process.env.OPENAI_API_KEY = openAiApiKey;
-      process.env.OPENAI_MODEL = openAiModel;
+      await db
+        .update(users)
+        .set({
+          openAiApiKey,
+          openAiModel,
+        })
+        .where(eq(users.id, userId));
 
       return res.json({ ok: true });
     } catch (e: any) {
@@ -1000,7 +1014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate risks for a work unit
-  app.post("/api/generate-risks", async (req, res) => {
+  app.post("/api/generate-risks", isAuthenticated, async (req: any, res) => {
     try {
       const validatedData = generateRisksRequestSchema.parse(req.body);
       
@@ -1026,11 +1040,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullDescription = normalizeText([fullDescription, validatedData.uploadedDocumentsContext].filter(Boolean).join("\n\n"));
       }
       
+      const aiConfig = await getUserOpenAiConfig(Number(req.user.id));
+      if (!aiConfig.hasKey) {
+        return res.status(400).json({ message: "Clé OpenAI non configurée. Rendez-vous dans Paramètres." });
+      }
+
       const risks = await storage.generateRisks(
         validatedData.workUnitName,
         validatedData.locationName,
         validatedData.companyActivity,
-        fullDescription || undefined
+        fullDescription || undefined,
+        { apiKey: aiConfig.apiKey, model: aiConfig.model }
       );
       res.json({ risks });
     } catch (error) {
@@ -1046,7 +1066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate hierarchical risks for specific level (Site, Zone, Unité, Activité)
-  app.post("/api/generate-hierarchical-risks", async (req, res) => {
+  app.post("/api/generate-hierarchical-risks", isAuthenticated, async (req: any, res) => {
     try {
       const { level, elementName, elementDescription, companyActivity, companyDescription, companyId, siteName, workstationNames, inheritedRisks, uploadedDocumentsContext, count, existingRisks } = req.body;
       
@@ -1104,13 +1124,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const aiConfig = await getUserOpenAiConfig(Number(req.user.id));
+      if (!aiConfig.hasKey) {
+        return res.status(400).json({ message: "Clé OpenAI non configurée. Rendez-vous dans Paramètres." });
+      }
+
       const risks = await storage.generateHierarchicalRisks(
         level,
         elementName,
         elementDescription || '',
         companyActivity,
         context,
-        typeof count === 'number' ? count : undefined
+        typeof count === 'number' ? count : undefined,
+        { apiKey: aiConfig.apiKey, model: aiConfig.model }
       );
       
       res.json({ risks });
@@ -1127,12 +1153,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Group workstations into work units using AI
-  app.post("/api/group-workstations", async (req, res) => {
+  app.post("/api/group-workstations", isAuthenticated, async (req: any, res) => {
     try {
       const { workstations, companyActivity, companyDescription, siteName } = req.body;
       
       if (!workstations || workstations.length === 0 || !companyActivity) {
         return res.status(400).json({ message: "Workstations and company activity are required" });
+      }
+
+      const aiConfig = await getUserOpenAiConfig(Number(req.user.id));
+      if (!aiConfig.hasKey) {
+        return res.status(400).json({ message: "Clé OpenAI non configurée. Rendez-vous dans Paramètres." });
       }
 
       const { generateJson } = await import('./ai-openai');
@@ -1157,7 +1188,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const content = await generateJson(prompt, {
         systemPrompt: DUERP_JSON_SYSTEM_PROMPT,
-        maxOutputTokens: 600
+        maxOutputTokens: 600,
+        apiKeyOverride: aiConfig.apiKey,
+        modelOverride: aiConfig.model
       });
       const result = JSON.parse(content || '{"groups": []}');
       res.json(result);
@@ -1170,7 +1203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate prevention recommendations
-  app.post("/api/generate-prevention-recommendations", async (req, res) => {
+  app.post("/api/generate-prevention-recommendations", isAuthenticated, async (req, res) => {
     try {
       const { companyActivity, risks, locations, workStations } = req.body;
       
@@ -1675,6 +1708,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         risks.length ? `Risques et mesures à mettre en place:\n${risks.map(r => `- ${r.danger || r.type}: ${r.measures}`).join('\n')}` : '',
         measures.length ? `Mesures de prévention:\n${measures.map(m => `- ${m.description}`).join('\n')}` : '',
       ].filter(Boolean).join('\n\n');
+      const aiConfig = await getUserOpenAiConfig(Number(req.user.id));
+      if (!aiConfig.hasKey) {
+        return res.status(400).json({ message: "Clé OpenAI non configurée. Rendez-vous dans Paramètres." });
+      }
       const { generateJson } = await import('./ai-openai');
       const prompt = [
         `Tâche: proposer 3 à 6 actions DUERP concrètes (éviter les doublons).`,
@@ -1691,7 +1728,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ].filter(Boolean).join('\n');
       const content = await generateJson(prompt, {
         systemPrompt: DUERP_JSON_SYSTEM_PROMPT,
-        maxOutputTokens: 450
+        maxOutputTokens: 450,
+        apiKeyOverride: aiConfig.apiKey,
+        modelOverride: aiConfig.model
       }) || '{"suggestions":[]}';
       const data = JSON.parse(content);
       const suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];

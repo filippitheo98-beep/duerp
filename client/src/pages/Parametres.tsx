@@ -1,6 +1,9 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,13 +16,60 @@ import {
 import { Header } from "@/components/Header";
 import { useTheme } from "@/components/ThemeProvider";
 import { User, KeyRound, Palette } from "lucide-react";
+import { useEffect, useState } from "react";
+
+type AppConfig = {
+  openAiApiKeyPresent: boolean;
+  openAiModel: string;
+};
 
 export default function Parametres() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
+  const [openAiKey, setOpenAiKey] = useState("");
+  const [openAiModel, setOpenAiModel] = useState("gpt-4o-mini");
+  const [iaError, setIaError] = useState<string | null>(null);
 
   const u = user as { email?: string; firstName?: string; lastName?: string } | undefined;
+
+  const configQuery = useQuery({
+    queryKey: ["/api/config"],
+    queryFn: async () => {
+      const res = await fetch("/api/config", { credentials: "include" });
+      if (!res.ok) {
+        const text = (await res.text()) || res.statusText;
+        throw new Error(text);
+      }
+      return (await res.json()) as AppConfig;
+    },
+  });
+
+  useEffect(() => {
+    if (configQuery.data?.openAiModel) {
+      setOpenAiModel(configQuery.data.openAiModel);
+    }
+  }, [configQuery.data?.openAiModel]);
+
+  const saveIaConfig = useMutation({
+    mutationFn: async () =>
+      apiRequest("/api/config", {
+        method: "POST",
+        body: JSON.stringify({
+          OPENAI_API_KEY: openAiKey,
+          OPENAI_MODEL: openAiModel,
+        }),
+      }),
+    onSuccess: () => {
+      setIaError(null);
+      setOpenAiKey("");
+      void queryClient.invalidateQueries({ queryKey: ["/api/config"] });
+    },
+    onError: (e: any) => {
+      setIaError(e?.message || "Impossible d'enregistrer la configuration IA.");
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,6 +123,71 @@ export default function Parametres() {
                 onClick={() => navigate("/change-password")}
               >
                 Changer le mot de passe
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                IA (OpenAI)
+              </CardTitle>
+              <CardDescription>
+                Configurez votre clé OpenAI personnelle. Chaque utilisateur peut utiliser sa propre clé.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                État actuel :{" "}
+                <span className="font-medium">
+                  {configQuery.data?.openAiApiKeyPresent ? "Clé configurée" : "Aucune clé configurée"}
+                </span>
+              </div>
+
+              {iaError && (
+                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                  {iaError}
+                </div>
+              )}
+
+              <div className="grid gap-2">
+                <Label htmlFor="openai-key">OPENAI_API_KEY</Label>
+                <Input
+                  id="openai-key"
+                  type="password"
+                  placeholder="sk-..."
+                  value={openAiKey}
+                  onChange={(e) => setOpenAiKey(e.target.value)}
+                  autoComplete="off"
+                  disabled={saveIaConfig.isPending}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="openai-model">OPENAI_MODEL</Label>
+                <Input
+                  id="openai-model"
+                  type="text"
+                  placeholder="gpt-4o-mini"
+                  value={openAiModel}
+                  onChange={(e) => setOpenAiModel(e.target.value)}
+                  disabled={saveIaConfig.isPending}
+                />
+              </div>
+
+              <Button
+                onClick={() => {
+                  setIaError(null);
+                  if (!openAiKey.trim()) {
+                    setIaError("Veuillez saisir votre OPENAI_API_KEY.");
+                    return;
+                  }
+                  saveIaConfig.mutate();
+                }}
+                disabled={saveIaConfig.isPending}
+              >
+                {saveIaConfig.isPending ? "Enregistrement..." : "Enregistrer la configuration IA"}
               </Button>
             </CardContent>
           </Card>

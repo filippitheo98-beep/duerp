@@ -1,7 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,36 +21,9 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { AuthGuard } from "./components/AuthGuard";
 import { AdminGuard } from "./components/AdminGuard";
 
-function getPath(location: any): string {
-  return typeof location === "string" ? location : location?.pathname || "";
-}
-
 function Router() {
-  const [location, navigate] = useLocation();
-  const currentPath = getPath(location);
-
-  const configQuery = useQuery({
-    queryKey: ["/api/config"],
-    retry: false,
-    queryFn: async () => {
-      const res = await fetch("/api/config", { credentials: "include" });
-      if (!res.ok) throw new Error((await res.text()) || res.statusText);
-      return res.json();
-    },
-  });
-
-  useEffect(() => {
-    if (configQuery.isLoading) return;
-    if (!configQuery.data?.openAiApiKeyPresent && currentPath !== "/setup") {
-      navigate("/setup", { replace: true });
-    }
-  }, [configQuery.isLoading, configQuery.data?.openAiApiKeyPresent, currentPath, navigate]);
-
   return (
     <Switch>
-      {/* Route publique config */}
-      <Route path="/setup" component={Setup} />
-
       {/* Routes publiques (auth) */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
@@ -95,6 +65,11 @@ function Router() {
       <Route path="/parametres">
         <AuthGuard>
           <Parametres />
+        </AuthGuard>
+      </Route>
+      <Route path="/setup">
+        <AuthGuard>
+          <Setup />
         </AuthGuard>
       </Route>
       <Route path="/admin">

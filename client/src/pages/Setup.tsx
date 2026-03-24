@@ -53,7 +53,7 @@ export default function Setup() {
     onSuccess: () => {
       // Forcer la garde de route à recharger la présence de clé.
       void queryClient.invalidateQueries({ queryKey: ["/api/config"] });
-      navigate("/login", { replace: true });
+      navigate("/parametres", { replace: true });
     },
     onError: (e: any) => {
       setError(e?.message || "Impossible d'enregistrer la configuration.");
@@ -81,8 +81,8 @@ export default function Setup() {
               <div className="text-sm text-muted-foreground">
                 Clé OpenAI déjà configurée. Modèle actuel : <span className="font-medium">{openAiModel}</span>
               </div>
-              <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>
-                Aller à la connexion
+              <Button className="w-full" onClick={() => navigate("/", { replace: true })}>
+                Continuer
               </Button>
             </div>
           ) : (

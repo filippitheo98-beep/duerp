@@ -12,20 +12,8 @@ const OPENAI_BASE_URL_ENV = "OPENAI_BASE_URL";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
 
-function getRequiredEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`Configuration IA manquante: ${name} n'est pas défini.`);
-  return v;
-}
-
 function getModel(): string {
   return process.env[OPENAI_MODEL_ENV]?.trim() || DEFAULT_MODEL;
-}
-
-function getClient(): OpenAI {
-  const apiKey = getRequiredEnv(OPENAI_API_KEY_ENV);
-  const baseURL = process.env[OPENAI_BASE_URL_ENV]?.trim();
-  return new OpenAI({ apiKey, baseURL: baseURL || undefined });
 }
 
 /**
@@ -53,6 +41,8 @@ export interface GenerateJsonOptions {
   temperature?: number;
   maxOutputTokens?: number;
   responseJsonSchema?: unknown;
+  apiKeyOverride?: string;
+  modelOverride?: string;
 }
 
 type CacheEntry = { value: string; expiresAt: number };
@@ -63,8 +53,14 @@ const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
  * Génère une réponse (attendue JSON) depuis OpenAI.
  */
 export async function generateJson(prompt: string, options: GenerateJsonOptions = {}): Promise<string> {
-  const client = getClient();
-  const model = getModel();
+  const effectiveApiKey = options.apiKeyOverride?.trim() || process.env[OPENAI_API_KEY_ENV]?.trim() || "";
+  if (!effectiveApiKey) {
+    throw new Error(`Configuration IA manquante: ${OPENAI_API_KEY_ENV} n'est pas défini.`);
+  }
+
+  const baseURL = process.env[OPENAI_BASE_URL_ENV]?.trim();
+  const client = new OpenAI({ apiKey: effectiveApiKey, baseURL: baseURL || undefined });
+  const model = options.modelOverride?.trim() || getModel();
 
   const messages: Array<{ role: "system" | "user"; content: string }> = [];
   if (options.systemPrompt) messages.push({ role: "system", content: options.systemPrompt });
