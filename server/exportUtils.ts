@@ -192,6 +192,142 @@ export async function generateRisksAndPlanActionExportExcel(
   return Buffer.from(buffer);
 }
 
+export async function generateFullDuerpWorkbookExcel(
+  risksRows: Array<Record<string, string | number>>,
+  planActionRows: Array<Record<string, string | number>>,
+  meta: {
+    companyName: string;
+    companyActivity?: string;
+    companyDescription?: string;
+    documentTitle?: string;
+    generatedAt?: Date;
+  }
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const generatedAt = meta.generatedAt || new Date();
+  const dateFr = generatedAt.toLocaleDateString("fr-FR");
+
+  const addSectionTitle = (sheet: ExcelJS.Worksheet, row: number, title: string) => {
+    sheet.mergeCells(row, 1, row, 10);
+    const cell = sheet.getCell(row, 1);
+    cell.value = title;
+    cell.font = { bold: true, size: 14 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+    cell.alignment = { horizontal: "left", vertical: "middle" };
+  };
+
+  // 1) Page de garde
+  const cover = workbook.addWorksheet("Page de garde");
+  cover.columns = [{ width: 4 }, { width: 32 }, { width: 90 }];
+  cover.mergeCells("B4:C4");
+  cover.getCell("B4").value = "Document unique d'évaluation des risques professionnels";
+  cover.getCell("B4").font = { bold: true, size: 16 };
+  cover.getCell("B4").alignment = { horizontal: "center" };
+  cover.getCell("B7").value = "Société :";
+  cover.getCell("C7").value = meta.companyName || "Non renseignée";
+  cover.getCell("B8").value = "Descriptif de l'activité :";
+  cover.getCell("C8").value = meta.companyActivity || "Non renseigné";
+  cover.getCell("B9").value = "Titre DUERP :";
+  cover.getCell("C9").value = meta.documentTitle || `${meta.companyName || "Entreprise"} - DUERP`;
+  cover.getCell("B10").value = "Date de génération :";
+  cover.getCell("C10").value = dateFr;
+  cover.getCell("B12").value = "Présentation :";
+  cover.getCell("C12").value = meta.companyDescription || "Aucune description fournie.";
+  cover.getCell("C12").alignment = { wrapText: true, vertical: "top" };
+  for (const row of [7, 8, 9, 10, 12]) cover.getCell(`B${row}`).font = { bold: true };
+
+  // 2) Suivi
+  const suivi = workbook.addWorksheet("Suivi");
+  suivi.columns = [{ width: 22 }, { width: 22 }, { width: 30 }, { width: 45 }, { width: 22 }];
+  addSectionTitle(suivi, 1, "Mise à jour du DUERP");
+  const suiviHeaders = ["Effectué le", "Par", "Modification DUERP (Oui/Non)", "Commentaire", "Signature"];
+  const suiviHeaderRow = suivi.addRow(suiviHeaders);
+  suiviHeaderRow.font = { bold: true };
+  suiviHeaderRow.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E2E2" } };
+    cell.alignment = { horizontal: "center" };
+  });
+  for (let i = 0; i < 8; i++) suivi.addRow(["", "", "", "", ""]);
+
+  // 3) Méthode (hiérarchisation)
+  const method = workbook.addWorksheet("Hiérarchisation");
+  method.columns = [{ width: 24 }, { width: 16 }, { width: 36 }, { width: 16 }, { width: 24 }, { width: 16 }];
+  addSectionTitle(method, 1, "Critères d'évaluation des risques");
+  method.addRow(["Gravité", "Indice", "Fréquence d'exposition", "Indice", "Maîtrise", "Indice"]);
+  [
+    ["Faible", 1, "Annuelle", 1, "Très élevée", 0.05],
+    ["Moyenne", 4, "Mensuelle", 4, "Élevée", 0.2],
+    ["Grave", 20, "Hebdomadaire", 10, "Moyenne", 0.5],
+    ["Très grave", 100, "Journalière", 50, "Absente", 1],
+  ].forEach((r) => method.addRow(r));
+  method.addRow([]);
+  addSectionTitle(method, 8, "Calcul de priorité");
+  method.addRow(["Cotation du risque", "Classement", "Interprétation"]);
+  [
+    ["< 10", "Priorité 4", "Situation limitée ou maîtrisée."],
+    ["10 ≤ note < 100", "Priorité 3", "Mesures complémentaires recommandées."],
+    ["100 ≤ note < 500", "Priorité 2", "Situation insuffisamment maîtrisée."],
+    ["500 ≤ note ≤ 5000", "Priorité 1", "Mesures correctives à engager sans délai."],
+  ].forEach((r) => method.addRow(r));
+  method.eachRow((row, rowNumber) => {
+    if (rowNumber === 2 || rowNumber === 9) {
+      row.font = { bold: true };
+      row.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E2E2" } };
+      });
+    }
+  });
+
+  const DUERP_HEADERS = [...RISKS_EXPORT_HEADERS];
+
+  const makeTableSheet = (name: string, rows: Array<Record<string, string | number>>) => {
+    const sheet = workbook.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
+    const headerRow = sheet.addRow(DUERP_HEADERS);
+    headerRow.font = { bold: true };
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+    for (const r of rows) {
+      const out = DUERP_HEADERS.map((h) => {
+        const v = r[h];
+        if (h === "Échéance" && typeof v === "string" && v) {
+          const d = new Date(v);
+          return Number.isNaN(d.getTime()) ? v : d;
+        }
+        return v ?? "";
+      });
+      const row = sheet.addRow(out);
+      row.eachCell((cell) => {
+        cell.alignment = { vertical: "top", wrapText: true };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFEDEDED" } },
+          left: { style: "thin", color: { argb: "FFEDEDED" } },
+          bottom: { style: "thin", color: { argb: "FFEDEDED" } },
+          right: { style: "thin", color: { argb: "FFEDEDED" } },
+        };
+      });
+    }
+    const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
+    sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
+    const widths = [25, 35, 30, 18, 12, 18, 15, 8, 35, 40, 15, 12, 12, 25];
+    sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
+  };
+
+  // 4) DUERP + 5) Plan action
+  makeTableSheet("DUERP", risksRows);
+  makeTableSheet("Plan action", planActionRows);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
+}
+
 export async function generatePDFFile(risks: any[], companyName: string, companyActivity: string, companyData?: any, locations?: any[], workStations?: any[], preventionMeasures?: any[], chartImages?: any): Promise<Buffer> {
   const doc = new jsPDF('landscape', 'mm', 'a4');
   

@@ -24,7 +24,7 @@ import {
 } from "./schemaDialect";
 import { isAdminEmail } from "@shared/adminConfig";
 import { z } from "zod";
-import { generateExcelFile, generatePDFFile, generateWordFile, generateRisksExportExcel, generateRisksAndPlanActionExportExcel } from './exportUtils';
+import { generateExcelFile, generatePDFFile, generateWordFile, generateRisksExportExcel, generateFullDuerpWorkbookExcel } from './exportUtils';
 import { db } from "./db";
 import { eq, desc, asc, count, lt, ne, sql, ilike, or, and, inArray, gt } from "drizzle-orm";
 import { DUERP_JSON_SYSTEM_PROMPT } from "./ai-prompts";
@@ -1586,7 +1586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export combiné : tableau des risques + plan d'action (2 feuilles)
+  // Export combiné depuis "Mes DUERP" : classeur complet type DUERP (multi-feuilles)
   app.get('/api/duerp-documents/:documentId/export-risques-plan.xlsx', isAuthenticated, async (req: any, res) => {
     try {
       const documentId = parseInt(req.params.documentId);
@@ -1597,11 +1597,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getRisksForExport(documentId),
         storage.getPlanActionForExport(documentId),
       ]);
-      const buffer = await generateRisksAndPlanActionExportExcel(
-        risksData.risks,
-        planData.risks,
-        risksData.documentId
-      );
+      const doc = await storage.getDuerpDocumentById(documentId);
+      const company = doc ? await storage.getCompany(doc.companyId) : null;
+      const buffer = await generateFullDuerpWorkbookExcel(risksData.risks, planData.risks, {
+        companyName: company?.name || "Entreprise",
+        companyActivity: company?.activity || "",
+        companyDescription: company?.description || "",
+        documentTitle: doc?.title || `DUERP ${risksData.documentId}`,
+        generatedAt: new Date(),
+      });
       const dateStr = new Date().toISOString().split('T')[0];
       const filename = `duerp_risques_plan_${risksData.documentId}_${dateStr}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
