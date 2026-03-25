@@ -93,7 +93,6 @@ const RISKS_EXPORT_HEADERS = [
   'Maîtrise',
   'Score',
   'Mesures existantes',
-  'Mesures à mettre en place',
 ] as const;
 
 export async function generateRisksExportExcel(
@@ -127,7 +126,7 @@ export async function generateRisksExportExcel(
   sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
 
   // Column widths (reasonable)
-  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35];
   sheet.columns = RISKS_EXPORT_HEADERS.map((_, i) => ({
     width: Math.min(50, Math.max(widths[i] || 12, 10))
   }));
@@ -144,7 +143,7 @@ export async function generateRisksAndPlanActionExportExcel(
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const lastCol = String.fromCharCode(64 + RISKS_EXPORT_HEADERS.length);
-  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
+  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35];
 
   const addSheet = (name: string, rows: Array<Record<string, string | number>>) => {
     const sheet = workbook.addWorksheet(name, {
@@ -328,7 +327,7 @@ export async function generateFullDuerpWorkbookExcel(
     }
     const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
     sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
-    const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35, 40];
+    const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35];
     sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
   };
 
