@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import type { Risk } from "@shared/schema";
-import { familyLabelForExport, situationLabelForExport } from "@shared/schema";
+import { familyLabelForExport, riskEventLabelForExport } from "@shared/schema";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, HeadingLevel, Media } from 'docx';
@@ -23,12 +23,11 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     const cleanDanger = hierarchyMatch ? hierarchyMatch[2] : risk.danger;
     
     const r = risk as Risk;
-    const sit = situationLabelForExport(r);
     return {
       'Site/Zone/Unité': hierarchy || risk.siteName || risk.source || 'Non spécifié',
       'Famille de risque': familyLabelForExport(r) || 'Non classifié',
       'Danger': cleanDanger || 'Non spécifié',
-      'Situation dangereuse': !risk.type?.trim() ? 'Non spécifié' : sit || '',
+      'Risque': riskEventLabelForExport(r) || '',
       'Gravité': risk.gravity || 'Non spécifié',
       'Valeur G': risk.gravityValue || '',
       'Fréquence': risk.frequency || 'Non spécifié',
@@ -50,7 +49,6 @@ export async function generateExcelFile(risks: any[], companyName: string): Prom
     { wch: 30 }, // Site/Zone/Unité
     { wch: 18 }, // Famille de risque
     { wch: 32 }, // Danger
-    { wch: 28 }, // Situation dangereuse
     { wch: 12 }, // Gravité
     { wch: 6 },  // Valeur G
     { wch: 12 }, // Fréquence
@@ -89,7 +87,7 @@ const RISKS_EXPORT_HEADERS = [
   'Lieu / Unité de travail',
   'Famille de risque',
   'Danger',
-  'Situation dangereuse',
+  'Risque',
   'Gravité',
   'Fréquence/Probabilité',
   'Maîtrise',
@@ -416,12 +414,11 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   // Tableau des risques - Source en première colonne avec largeurs optimisées
   const tableData = risks.map((risk) => {
     const r = risk as Risk;
-    const sit = situationLabelForExport(r);
     return [
     risk.source || 'Non spécifié',
     familyLabelForExport(r) || 'Non spécifié',
     risk.danger || 'Non spécifié',
-    !risk.type?.trim() ? 'Non spécifié' : sit || '',
+    riskEventLabelForExport(r) || '',
     risk.gravity || 'Non spécifié',
     risk.frequency || 'Non spécifié',
     risk.control || 'Non spécifié',
@@ -432,7 +429,7 @@ export async function generatePDFFile(risks: any[], companyName: string, company
   });
   
   autoTable(doc, {
-    head: [['Source', 'Famille', 'Danger', 'Situation dangereuse', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
+    head: [['Source', 'Famille', 'Danger', 'Risque', 'Gravité', 'Fréquence', 'Maîtrise', 'Score', 'Priorité', 'Mesures']],
     body: tableData,
     startY: 50,
     styles: { 
