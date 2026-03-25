@@ -95,6 +95,13 @@ const RISKS_EXPORT_HEADERS = [
   'Mesures existantes',
 ] as const;
 
+// Pour l'onglet Plan action, on réintroduit la colonne des mesures que l'utilisateur a ajoutées
+// (actions), sans retomber sur des propositions IA.
+const PLAN_ACTION_EXPORT_HEADERS = [
+  ...RISKS_EXPORT_HEADERS,
+  'Mesures à mettre en place',
+] as const;
+
 export async function generateRisksExportExcel(
   risks: Array<Record<string, string | number>>,
   documentId: number
@@ -142,14 +149,17 @@ export async function generateRisksAndPlanActionExportExcel(
   documentId: number
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  const lastCol = String.fromCharCode(64 + RISKS_EXPORT_HEADERS.length);
-  const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35];
 
-  const addSheet = (name: string, rows: Array<Record<string, string | number>>) => {
+  const addSheet = (
+    name: string,
+    rows: Array<Record<string, string | number>>,
+    headers: readonly string[]
+  ) => {
     const sheet = workbook.addWorksheet(name, {
       views: [{ state: 'frozen', ySplit: 1 }]
     });
-    const headerRow = sheet.addRow([...RISKS_EXPORT_HEADERS]);
+
+    const headerRow = sheet.addRow([...headers]);
     headerRow.font = { bold: true };
     headerRow.eachCell((cell) => {
       cell.fill = {
@@ -159,17 +169,25 @@ export async function generateRisksAndPlanActionExportExcel(
       };
     });
     for (const r of rows) {
-      const row = RISKS_EXPORT_HEADERS.map((h) => r[h] ?? '');
+      const row = headers.map((h) => r[h] ?? '');
       sheet.addRow(row);
     }
+
+    const lastCol = String.fromCharCode(64 + headers.length);
     sheet.autoFilter = { from: 'A1', to: `${lastCol}1` };
-    sheet.columns = RISKS_EXPORT_HEADERS.map((_, i) => ({
+
+    // Largeurs alignées sur les en-têtes actuels
+    const baseWidths = [25, 18, 32, 30, 12, 18, 15, 8, 35]; // RISKS_EXPORT_HEADERS
+    const planExtraWidth = 40;
+    const widths = headers.length === 10 ? [...baseWidths, planExtraWidth] : baseWidths;
+
+    sheet.columns = headers.map((_, i) => ({
       width: Math.min(50, Math.max(widths[i] || 12, 10))
     }));
   };
 
-  addSheet('Tableau des risques', risksRows);
-  addSheet('Plan d\'action', planActionRows);
+  addSheet('Tableau des risques', risksRows, RISKS_EXPORT_HEADERS);
+  addSheet('Plan d\'action', planActionRows, PLAN_ACTION_EXPORT_HEADERS);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
@@ -297,10 +315,15 @@ export async function generateFullDuerpWorkbookExcel(
   });
 
   const DUERP_HEADERS = [...RISKS_EXPORT_HEADERS];
+  const PLAN_HEADERS = [...PLAN_ACTION_EXPORT_HEADERS];
 
-  const makeTableSheet = (name: string, rows: Array<Record<string, string | number>>) => {
+  const makeTableSheet = (
+    name: string,
+    rows: Array<Record<string, string | number>>,
+    headers: string[]
+  ) => {
     const sheet = workbook.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
-    const headerRow = sheet.addRow(DUERP_HEADERS);
+    const headerRow = sheet.addRow(headers);
     headerRow.font = { bold: true };
     headerRow.eachCell((cell) => {
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
@@ -313,7 +336,7 @@ export async function generateFullDuerpWorkbookExcel(
       };
     });
     for (const r of rows) {
-      const out = DUERP_HEADERS.map((h) => r[h] ?? "");
+      const out = headers.map((h) => r[h] ?? "");
       const row = sheet.addRow(out);
       row.eachCell((cell) => {
         cell.alignment = { vertical: "top", wrapText: true };
@@ -325,31 +348,35 @@ export async function generateFullDuerpWorkbookExcel(
         };
       });
     }
-    const lastCol = String.fromCharCode(64 + DUERP_HEADERS.length);
+    const lastCol = String.fromCharCode(64 + headers.length);
     sheet.autoFilter = { from: "A1", to: `${lastCol}1` };
     const widths = [25, 18, 32, 30, 12, 18, 15, 8, 35];
-    sheet.columns = DUERP_HEADERS.map((_, i) => ({ width: Math.min(60, Math.max(widths[i] || 12, 10)) }));
+
+    const planExtraWidth = 40;
+    const widthsFinal = headers.length === 10 ? [...widths, planExtraWidth] : widths;
+
+    sheet.columns = headers.map((_, i) => ({ width: Math.min(60, Math.max(widthsFinal[i] || 12, 10)) }));
   };
 
   // 6) DUERP + 7) Plan action
-  makeTableSheet("DUERP", risksRows);
-  makeTableSheet("Plan action", planActionRows);
+  makeTableSheet("DUERP", risksRows, DUERP_HEADERS);
+  makeTableSheet("Plan action", planActionRows, PLAN_HEADERS);
 
   // 8) Données tableau (brut) pour rapprocher la logique classeur du modèle de référence
   const raw = workbook.addWorksheet("Données tableau");
-  const rawHeaders = [...DUERP_HEADERS, "Type de feuille"];
+  const rawHeaders = [...PLAN_HEADERS, "Type de feuille"];
   raw.addRow(rawHeaders).font = { bold: true };
   raw.getRow(1).eachCell((cell) => {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
   });
   for (const row of risksRows) {
-    raw.addRow([...DUERP_HEADERS.map((h) => row[h] ?? ""), "DUERP"]);
+    raw.addRow([...PLAN_HEADERS.map((h) => row[h] ?? ""), "DUERP"]);
   }
   for (const row of planActionRows) {
-    raw.addRow([...DUERP_HEADERS.map((h) => row[h] ?? ""), "Plan action"]);
+    raw.addRow([...PLAN_HEADERS.map((h) => row[h] ?? ""), "Plan action"]);
   }
   raw.columns = rawHeaders.map((_, i) => ({
-    width: i < DUERP_HEADERS.length ? Math.min(40, Math.max(12, i === 0 ? 24 : 16)) : 14,
+    width: i < PLAN_HEADERS.length ? Math.min(40, Math.max(12, i === 0 ? 24 : 16)) : 14,
   }));
 
   const buffer = await workbook.xlsx.writeBuffer();

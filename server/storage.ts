@@ -261,7 +261,9 @@ export class DatabaseStorage implements IStorage {
       'Maîtrise': risk.control || '',
       'Score': risk.riskScore ?? 0,
       'Mesures existantes': Array.isArray(risk.existingMeasures) ? risk.existingMeasures.join(' ; ') : '',
-      'Mesures à mettre en place': actionByRiskId.get(risk.id) ?? risk.measures ?? '',
+      // Pour le Plan action Excel, on ne veut QUE les mesures ajoutées (actions),
+      // pas les propositions du champ `risk.measures` (IA).
+      'Mesures à mettre en place': actionByRiskId.get(risk.id) ?? '',
     });
     const workUnits = (doc.workUnitsData as WorkUnit[]) || [];
     for (const unit of workUnits) {
