@@ -15,6 +15,7 @@ import {
   Users
 } from "lucide-react";
 import type { WorkUnit } from "@shared/schema";
+import { familyLabelForExport, riskEventLabelForExport } from "@shared/schema";
 import { extractAllRisks, getRiskStatistics, type FlattenedRisk } from "@/lib/hierarchicalUtils";
 
 interface HierarchicalRiskTableProps {
@@ -52,14 +53,14 @@ export default function HierarchicalRiskTable({
   const stats = useMemo(() => getRiskStatistics(workUnits), [workUnits]);
   
   const families = useMemo(() => {
-    const familySet = new Set(allRisks.map(r => r.family || 'Autre'));
+    const familySet = new Set(allRisks.map((r) => familyLabelForExport(r) || "Autre"));
     return Array.from(familySet).sort();
   }, [allRisks]);
 
   const filteredRisks = useMemo(() => {
     return allRisks.filter(risk => {
       if (filterPriority !== 'all' && risk.priority !== filterPriority) return false;
-      if (filterFamily !== 'all' && (risk.family || 'Autre') !== filterFamily) return false;
+      if (filterFamily !== "all" && (familyLabelForExport(risk) || "Autre") !== filterFamily) return false;
       if (filterUnit !== 'all' && risk.workUnitName !== filterUnit) return false;
       return true;
     });
@@ -209,7 +210,6 @@ export default function HierarchicalRiskTable({
                   <TableHead className="w-[200px]">Unité de travail</TableHead>
                   <TableHead className="w-[120px]">Famille de risque</TableHead>
                   <TableHead className="w-[150px]">Danger</TableHead>
-                  <TableHead className="w-[160px]">Situation dangereuse</TableHead>
                   <TableHead className="min-w-[140px]">Risque</TableHead>
                   <TableHead className="w-[80px] text-center">G</TableHead>
                   <TableHead className="w-[80px] text-center">F</TableHead>
@@ -235,17 +235,14 @@ export default function HierarchicalRiskTable({
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {risk.family || 'Autre'}
+                            {familyLabelForExport(risk) || "Autre"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
                           {risk.danger}
                         </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {risk.type}
-                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {risk.riskEvent || '—'}
+                          {riskEventLabelForExport(risk) || "—"}
                         </TableCell>
                         <TableCell className="text-center text-xs">
                           {risk.gravityValue || risk.gravity}

@@ -442,6 +442,27 @@ export function situationLabelForExport(risk: Risk): string {
   return t;
 }
 
+/**
+ * Libellé d'export pour la colonne "Risque" (conséquence).
+ * - Si `riskEvent` contient un libellé qui ressemble à une famille (ancien mauvais mapping), on vide.
+ * - Fallback legacy : si `riskEvent` est vide, on tente `type` uniquement si ce n'est pas une famille.
+ */
+export function riskEventLabelForExport(risk: Risk): string {
+  const re = (risk.riskEvent || '').trim();
+  if (re) {
+    if (RISK_FAMILY_LABELS_FOR_EXPORT.has(re)) return '';
+    const fam = (risk.family || '').trim();
+    if (fam && re === fam) return '';
+    return re;
+  }
+
+  const t = (risk.type || '').trim();
+  if (!t) return '';
+  // Si l'ancien champ contenait une famille, on ne l'affiche pas en "Risque"
+  if (RISK_FAMILY_LABELS_FOR_EXPORT.has(t)) return '';
+  return t;
+}
+
 // Mesure de prévention avec lien hiérarchique
 export interface PreventionMeasure {
   id: string;

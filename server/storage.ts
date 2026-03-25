@@ -21,7 +21,7 @@ import type {
   UploadedDocument,
   InsertUploadedDocument,
 } from "@shared/schema";
-import { familyLabelForExport, situationLabelForExport } from "@shared/schema";
+import { familyLabelForExport, riskEventLabelForExport } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, asc, ne } from "drizzle-orm";
 import crypto from 'crypto';
@@ -199,7 +199,7 @@ export class DatabaseStorage implements IStorage {
       'Lieu / Unité de travail': lieuUnite,
       'Famille de risque': familyLabelForExport(risk),
       'Danger': risk.danger || '',
-      'Situation dangereuse': situationLabelForExport(risk),
+      'Risque': riskEventLabelForExport(risk),
       'Gravité': risk.gravity || '',
       'Fréquence/Probabilité': risk.frequency || '',
       'Maîtrise': risk.control || '',
@@ -255,7 +255,7 @@ export class DatabaseStorage implements IStorage {
       'Lieu / Unité de travail': lieuUnite,
       'Famille de risque': familyLabelForExport(risk),
       'Danger': risk.danger || '',
-      'Situation dangereuse': situationLabelForExport(risk),
+      'Risque': riskEventLabelForExport(risk),
       'Gravité': risk.gravity || '',
       'Fréquence/Probabilité': risk.frequency || '',
       'Maîtrise': risk.control || '',

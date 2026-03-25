@@ -50,6 +50,7 @@ import {
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { WorkUnit, Risk } from "@shared/schema";
+import { familyLabelForExport, riskEventLabelForExport } from "@shared/schema";
 
 export interface ActionRow {
   id: number;
@@ -298,12 +299,11 @@ export default function PlanActionStep({
         riskId: row.risk.id,
         title: trimmed,
         riskDanger: [
-          row.risk.family,
+          familyLabelForExport(row.risk),
           row.risk.danger,
-          row.risk.type,
-          row.risk.riskEvent,
+          riskEventLabelForExport(row.risk),
         ]
-          .filter(Boolean)
+          .filter((s) => String(s || "").trim())
           .join(" · "),
         priority: row.risk.priority,
       });
@@ -545,7 +545,6 @@ export default function PlanActionStep({
                       <TableHead className="w-[160px] text-xs">Unité de travail</TableHead>
                       <TableHead className="w-[100px] text-xs">Famille de risque</TableHead>
                       <TableHead className="text-xs min-w-[110px]">Danger</TableHead>
-                      <TableHead className="w-[130px] text-xs">Situation dangereuse</TableHead>
                       <TableHead className="text-xs min-w-[100px]">Risque</TableHead>
                       <TableHead className="w-[110px] text-xs">Priorité</TableHead>
                       <TableHead className="text-xs max-w-[200px]">Complété (mesures existantes)</TableHead>
@@ -580,11 +579,10 @@ export default function PlanActionStep({
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="text-[10px]">{row.risk.family || "Autre"}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{familyLabelForExport(row.risk) || "Autre"}</Badge>
                           </TableCell>
                           <TableCell className="text-xs">{row.risk.danger || "—"}</TableCell>
-                          <TableCell className="text-xs">{row.risk.type || "—"}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{row.risk.riskEvent || "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{riskEventLabelForExport(row.risk) || "—"}</TableCell>
                           <TableCell>
                             <Badge className={`text-[10px] ${PRIORITY_BADGE_COLORS[priority] || ""}`}>
                               <PIcon className="h-3 w-3 mr-1 inline" />
@@ -739,7 +737,7 @@ export default function PlanActionStep({
                       </Button>
                     </div>
                     {(() => {
-                      const family = measuresDialogRow.risk.family || "Ergonomique";
+                      const family = familyLabelForExport(measuresDialogRow.risk) || "Autre";
                       const suggestions = SUGGESTED_MEASURES[family] || [];
                       return suggestions.length > 0 ? (
                         <div>

@@ -31,6 +31,7 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import type { WorkUnit, Risk, RiskFamily } from "@shared/schema";
+import { familyLabelForExport, riskEventLabelForExport } from "@shared/schema";
 
 interface HierarchicalEditorStepProps {
   companyId: number;
@@ -439,7 +440,6 @@ export default function HierarchicalEditorStep({
                     <TableHead className="w-[160px] text-xs">Unité de travail</TableHead>
                     <TableHead className="w-[100px] text-xs">Famille de risque</TableHead>
                     <TableHead className="text-xs min-w-[120px]">Danger</TableHead>
-                    <TableHead className="w-[140px] text-xs">Situation dangereuse</TableHead>
                     <TableHead className="text-xs min-w-[120px]">Risque</TableHead>
                     <TableHead className="w-[50px] text-center text-xs">G</TableHead>
                     <TableHead className="w-[50px] text-center text-xs">F</TableHead>
@@ -468,11 +468,10 @@ export default function HierarchicalEditorStep({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">{tr.risk.family || 'Autre'}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{familyLabelForExport(tr.risk) || "Autre"}</Badge>
                         </TableCell>
                         <TableCell className="text-xs">{tr.risk.danger}</TableCell>
-                        <TableCell className="text-xs">{tr.risk.type}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{tr.risk.riskEvent || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{riskEventLabelForExport(tr.risk) || "—"}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.gravityValue}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.frequencyValue}</TableCell>
                         <TableCell className="text-center text-xs font-mono">{tr.risk.controlValue}</TableCell>
@@ -563,14 +562,14 @@ export default function HierarchicalEditorStep({
                     }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-[10px]">{risk.family}</Badge>
-                      {risk.riskEvent ? (
-                        <span className="text-sm font-medium">{risk.riskEvent}</span>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Badge variant="outline" className="text-[10px]">{familyLabelForExport(risk) || "Autre"}</Badge>
+                      {(risk.riskEvent || "").trim() ? (
+                        <span className="text-sm font-medium">{(risk.riskEvent || "").trim()}</span>
                       ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/90">Danger :</span> {risk.danger}</p>
-                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/90">Situation :</span> {risk.type}</p>
+                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground/90">Risque :</span> {riskEventLabelForExport(risk) || "—"}</p>
                     <p className="text-xs text-muted-foreground mt-1">Mesures recommandées: {risk.measures}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge className={`text-[9px] ${PRIORITY_BADGE_COLORS[risk.priority] || ''}`}>
@@ -891,7 +890,7 @@ function RiskEditDialog({ tableRisk, onClose, onSave, readOnly = false }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <LabelText className="text-xs text-muted-foreground">Famille de risque</LabelText>
-              <p className="text-sm">{r.family}</p>
+              <p className="text-sm">{familyLabelForExport(r) || "—"}</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -908,7 +907,7 @@ function RiskEditDialog({ tableRisk, onClose, onSave, readOnly = false }: {
               <LabelText className="text-xs text-muted-foreground mb-1.5 block">Situation dangereuse</LabelText>
               <p className="text-xs text-muted-foreground mb-1">Contexte ou exposition (ex. changement d&apos;ampoule sous tension).</p>
               {readOnly ? (
-                <p className="text-sm">{r.type}</p>
+                <p className="text-sm">{riskEventLabelForExport(r) || "—"}</p>
               ) : (
                 <Textarea value={situationText} onChange={(e) => setSituationText(e.target.value)} rows={2} className="text-sm" />
               )}
